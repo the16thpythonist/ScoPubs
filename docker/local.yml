@@ -1,0 +1,59 @@
+version: '3.2'
+
+services:
+
+  scopubs-wordpress-db:
+    image: mysql:8.0
+    restart: on-failure
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "wordpress"
+      MYSQL_PASSWORD: "wordpress"
+      MYSQL_USER: "wordpress"
+      MYSQL_DATABASE: "wordpress"
+    # Apparently one needs this cap to avoid a common warning with the mysql image
+    cap_add:
+      - SYS_NICE
+    volumes:
+      - db:/var/lib/mysql
+
+  scopubs-wordpress-web:
+    image: scopubs-worpdress
+    depends_on:
+      - scopubs-wordpress-db
+    build:
+      # As the context we want the root folder of the repository. It is just easier this way in the Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "80:80"
+    restart: on-failure
+    environment:
+      # All the necessary information about the database
+      WORDPRESS_DB_HOSTNAME: "scopubs-wordpress-db"
+      WORDPRESS_DB_PORT: "3306"
+      WORDPRESS_DB_HOST: "scopubs-wordpress-db:3306"
+      WORDPRESS_DB_USER: "wordpress"
+      WORDPRESS_DB_NAME: "wordpress"
+      WORDPRESS_DB_PASSWORD: "wordpress"
+      WORDPRESS_DOMAIN: "localhost"
+      WORDPRESS_TITLE: "ScoPubs Dev"
+      WORDPRESS_ADMIN_USER: "admin"
+      WORDPRESS_ADMIN_PASSWORD: "admin"
+      # This is not a real email address, but we also dont actually need a real one for the local development. But
+      # wordpress insists that you provide one
+      WORDPRESS_ADMIN_EMAIL: "admin@gmail.com"
+    links:
+      # Internally the container needs the name "db" to resolve to the database container. That is what we are doing
+      # here: Essentially we define "db" to be an alias of the actual name given to the database service above.
+      - scopubs-wordpress-db:db
+    volumes:
+      - web:/var/www/html
+      # Obviously we want to use this for development so we need to map the local folder (where we can actually change
+      # the code) to the corresponding plugin folder within the container.
+      - ..:/var/www/html/wp-content/plugins/scopubs
+
+volumes:
+  web: {}
+  db: {}
