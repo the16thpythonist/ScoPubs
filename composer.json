@@ -66,5 +66,10 @@
   },
   "github-oauth": {
     "github.com": "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"
+  },
+  "autoload": {
+    "psr-4": {
+      "Scopubs\\": "src/"
+    }
   }
 }
