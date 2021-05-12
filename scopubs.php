@@ -16,6 +16,10 @@ require_once 'vendor/autoload.php';
 
 use Scopubs\PostTypes\ObservedAuthorPostRegistration;
 use Scopubs\PostTypes\PublicationPostRegistration;
+use Scopubs\VueFrontendRegistration;
+
+// == DEFINING CONSTANTS
+define('SCOPUBS_URL_BASE', plugin_dir_url(__FILE__));
 
 // == REGISTERING CUSTOM POST TYPES
 $observed_author_registration = new ObservedAuthorPostRegistration( 'observed-author' );
@@ -24,21 +28,8 @@ $observed_author_registration->register();
 $publication_registration = new PublicationPostRegistration( 'publication' );
 $publication_registration->register();
 
-
-function register_assets() {
-    $frontend_url_base = plugin_dir_url(__FILE__) . '/js/dist';
-    wp_register_style( 'scopubs-frontend-style', $frontend_url_base . '/scopubs-frontend.css' );
-    wp_register_script( 'scopubs-frontend-script', $frontend_url_base . '/scopubs-frontend.js' );
-}
-
-add_action( 'init', 'register_assets' );
-
-function enqueue_assets() {
-    wp_enqueue_style( 'scopubs-frontend-style' );
-    wp_enqueue_script( 'scopubs-frontend-script' );
-}
-
-add_action( 'admin_enqueue_scripts', 'enqueue_assets' );
+$frontend_registration = new VueFrontendRegistration();
+$frontend_registration->register();
 
 function options_page() {
     ?>

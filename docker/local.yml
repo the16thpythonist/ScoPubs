@@ -44,6 +44,9 @@ services:
       # This is not a real email address, but we also dont actually need a real one for the local development. But
       # wordpress insists that you provide one
       WORDPRESS_ADMIN_EMAIL: "admin@gmail.com"
+      # The fact that this variable even exists will tell the actual wordpress plugin code that it should load the
+      # development configuration (this includes different JS file which support Vue hot reloading)
+      SCOPUBS_DEV: "1"
     links:
       # Internally the container needs the name "db" to resolve to the database container. That is what we are doing
       # here: Essentially we define "db" to be an alias of the actual name given to the database service above.
