@@ -47,8 +47,8 @@ class ObservedAuthorPost {
     public const INSERT_VALUE_VALIDATION = [
         'first_name'            => ['validate_is_string', 'cleanup_string'],
         'last_name'             => ['validate_is_string', 'cleanup_string'],
-        'scopus_author_ids'     => ['validate_is_array', 'cleanup_int_elements'],
-        'category_ids'          => ['validate_is_array', 'cleanup_int_elements'],
+        'scopus_author_ids'     => ['validate_is_array', 'validate_not_empty', 'cleanup_int_elements'],
+        'category_ids'          => ['validate_is_array', 'validate_not_empty', 'cleanup_int_elements'],
         'affiliations'          => ['validate_is_array'],
         'affiliation_blacklist' => ['validate_is_array', 'cleanup_int_elements']
     ];
@@ -88,15 +88,18 @@ class ObservedAuthorPost {
 
     public static function validate_insert_args(array $args) {
         $class_name = get_called_class();
+        $validated_args = [];
+
         foreach ($args as $key => $value) {
             $validation_methods = self::INSERT_VALUE_VALIDATION[$key];
 
             $validated_value = $value;
             foreach ($validation_methods as $validation_method) {
-                $validated_value = call_user_func_array([$class_name, $validation_method], [$validated_value]);
+                $validated_value = call_user_func_array([$class_name, $validation_method], [$key, $validated_value]);
             }
+            $validated_args[$key] = $validated_value;
         }
-        return $args;
+        return $validated_args;
     }
 
     public static function create_postarr(array $args) {
@@ -104,4 +107,32 @@ class ObservedAuthorPost {
     }
 
     // -- Value validation methods
+
+    public static function validate_is_string(string $key, $value) {
+        if (is_string($value)) {
+            return $value;
+        } else {
+            throw new \InvalidArgumentException("${key} needs to be of type string!");
+        }
+    }
+
+    public static function validate_is_array(string $key, $value) {
+        if (is_array($value)) {
+            return $value;
+        } else {
+            throw new \InvalidArgumentException("${key} needs to be an array!");
+        }
+    }
+
+    public static function validate_not_empty(string $key, $value) {
+        return $value;
+    }
+
+    public static function cleanup_int_elements(string $key, array $value) {
+        return $value;
+    }
+
+    public static function cleanup_string(string $key, string $value) {
+        return $value;
+    }
 }
