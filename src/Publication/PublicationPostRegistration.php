@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Scopubs\PostTypes;
+namespace Scopubs\Publication;
 
 
-class ObservedAuthorPostRegistration
+class PublicationPostRegistration
 {
     public $post_type;
 
@@ -46,15 +46,15 @@ class ObservedAuthorPostRegistration
                 'exclude_from_search'               => false,
                 'show_ui'                           => true,
                 'show_in_menu'                      => true,
-                'menu_icon'                         => 'dashicons-businessperson',
+                'menu_icon'                         => 'dashicons-media-document',
                 'hierarchical'                      => false,
-                'has_archive'                       => 'observed-authors',
-                'query_var'                         => 'observed-author',
+                'has_archive'                       => 'publications',
+                'query_var'                         => 'publication',
                 'map_meta_cap'                      => true,
 
                 // Handles the URL structure
                 'rewrite' => [
-                    'slug'                          => 'observed-authors',
+                    'slug'                          => 'publications',
                     'with_front'                    => false,
                     'pages'                         => true,
                     'feeds'                         => true,
@@ -71,33 +71,33 @@ class ObservedAuthorPostRegistration
 
                 // Text labels
                 'labels' => [
-                    'name'                          => 'Observed Authors',
-                    'singular_name'                 => 'Observed Author',
+                    'name'                          => 'Publications',
+                    'singular_name'                 => 'Publication',
                     'add_new'                       => 'Add New',
-                    'add_new_item'                  => 'Add New Author',
-                    'edit_item'                     => 'Edit Author',
-                    'view_item'                     => 'View Author',
-                    'view_items'                    => 'View Observed Authors',
-                    'search_items'                  => 'Search Observed Authors',
-                    'not_found'                     => 'No Authors found',
-                    'not_found_in_trash'            => 'No Authors found in Trash.',
-                    'all_items'                     => 'All Observed Authors',
-                    'archives'                      => 'Observed Author Archives',
-                    'attributes'                    => 'Observed Author Attributes',
-                    'insert_into_item'              => 'Append to Author',
-                    'uploaded_to_this_item'         => 'Uploaded to this Author',
-                    'featured_image'                => 'Author Profile Picture',
-                    'set_featured_image'            => 'Set Author Profile Picture',
-                    'remove_featured_image'         => 'Remove Profile Picture',
-                    'use_featured_image'            => 'Use as Author Profile Picture',
-                    'filter_items_list'             => 'Filter Authors list',
-                    'items_list_navigation'         => 'Authors list navigation',
-                    'items_list'                    => 'Authors list',
-                    'item_published'                => 'Observed Author added',
-                    'item_published_privately'      => 'Observed Author added privately',
-                    'item_reverted_to_draft'        => 'Observed Author deactivated',
+                    'add_new_item'                  => 'Add New Publication',
+                    'edit_item'                     => 'Edit Publication',
+                    'view_item'                     => 'View Publication',
+                    'view_items'                    => 'View Publications',
+                    'search_items'                  => 'Search Publications',
+                    'not_found'                     => 'No Publications found',
+                    'not_found_in_trash'            => 'No Publications found in Trash.',
+                    'all_items'                     => 'All Publications',
+                    'archives'                      => 'Publication Archives',
+                    'attributes'                    => 'Publication Attributes',
+                    'insert_into_item'              => 'Append to Publication',
+                    'uploaded_to_this_item'         => 'Uploaded to this Publication',
+                    'featured_image'                => 'Publication image',
+                    'set_featured_image'            => 'Set Publication image',
+                    'remove_featured_image'         => 'Remove Publication image',
+                    'use_featured_image'            => 'Use as Publication image',
+                    'filter_items_list'             => 'Filter Publications list',
+                    'items_list_navigation'         => 'Publications list navigation',
+                    'items_list'                    => 'Publications list',
+                    'item_published'                => 'Publication added',
+                    'item_published_privately'      => 'Publication added privately',
+                    'item_reverted_to_draft'        => 'Publication deactivated',
                     'item_scheduled'                => '-',
-                    'item_updated'                  => 'Observed Author information updated'
+                    'item_updated'                  => 'Publication data updated'
                 ]
             ]
         );

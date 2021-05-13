@@ -14,7 +14,7 @@
 
 require_once 'vendor/autoload.php';
 
-use Scopubs\PostTypes\ObservedAuthorPostRegistration;
+use Scopubs\Author\ObservedAuthorPostRegistration;
 use Scopubs\PostTypes\PublicationPostRegistration;
 use Scopubs\VueFrontendRegistration;
 

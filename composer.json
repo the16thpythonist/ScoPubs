@@ -64,12 +64,18 @@
     "kasparsj/scopus-search-api":"9999999-dev",
     "monolog/monolog":"^1.0"
   },
+  "require-dev": {
+    "phpunit/phpunit": "^9"
+  },
   "github-oauth": {
     "github.com": "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"
   },
   "autoload": {
     "psr-4": {
       "Scopubs\\": "src/"
-    }
+    },
+    "classmap": [
+      "src/"
+    ]
   }
 }
