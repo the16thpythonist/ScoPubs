@@ -16,7 +16,7 @@ services:
     cap_add:
       - SYS_NICE
     volumes:
-      - db:/var/lib/mysql
+      - scopubs-db:/var/lib/mysql
 
   scopubs-wordpress-web:
     image: scopubs-worpdress
@@ -52,11 +52,11 @@ services:
       # here: Essentially we define "db" to be an alias of the actual name given to the database service above.
       - scopubs-wordpress-db:db
     volumes:
-      - web:/var/www/html
+      - scopubs-web:/var/www/html
       # Obviously we want to use this for development so we need to map the local folder (where we can actually change
       # the code) to the corresponding plugin folder within the container.
       - ..:/var/www/html/wp-content/plugins/scopubs
 
 volumes:
-  web: {}
-  db: {}
+  scopubs-web: {}
+  scopubs-db: {}

@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Scopubs\Author\ObservedAuthorPost;
 
-class TestObservedAuthorPost extends TestCase {
+class ObservedAuthorPostTest extends TestCase {
 
     public function test_validate_insert_args_working() {
         // This is a pretty standard set of arguments for creating a new author post, this should be working

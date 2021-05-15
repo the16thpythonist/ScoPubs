@@ -6,6 +6,46 @@ ScoPubs is a Wordpress plugin. It is created to integrate scientific publication
 ease. By relying on the Scopus scientific database, publications of various selected authors can be automatically
 imported to the wordpress site as a custom post type.
 
+Features
+========
+
+to be done
+
+Installation
+============
+
+Currently the only available method of installation is by manually adding the plugin folder to your wordpress i
+installation. Once a first stable version of the plugin is released, it should be possible to install the plugin
+through the wordpress plugin repository as well.
+
+Manual Installation
+-------------------
+
+For a manual installation, you will need file system and preferably terminal access to your wordpress installation.
+
+The first step is to check, if all of the following prerequisites are installed on your system:
+
+- ``git``: This will be used to clone this repo.
+- ``composer``: The PHP package manager `Composer <https://getcomposer.org/>`_ will be needed to install the
+  dependencies.
+
+The plugin folder needs to be installed into the *plugins* folder of your wordpress instance:
+
+.. code-block:: console
+
+    cd ./wp-content/plugins
+    git clone https://github.com/the16thpythonist/scopubs.git
+
+Then within the newly created scopubs plugin folder run the composer "install" command to install the dependencies:
+
+.. code-block:: console
+
+    cd ./scopubs
+    composer install
+
+After these steps are completed, the plugin should show up in the admin dashboard of the wordpress instance where it
+can be activated.
+
 Development
 ===========
 
@@ -67,8 +107,13 @@ into the ``/vendor`` folder:
 
 .. code-block:: console
 
-    ./vendor/bin/phpunit ./tests/*
+    ./vendor/bin/phpunit ./tests
 
+.. note::
+
+    The PHPUnit convention is that given a folder like "tests" it will assume every php file to be a test case class,
+    which *ends* with the substring "Test".
+    `Related StackOverflow <https://stackoverflow.com/questions/4047199/how-can-i-get-phpunit-to-run-tests-from-all-files-in-a-folder>`_
 
 Credits
 =======

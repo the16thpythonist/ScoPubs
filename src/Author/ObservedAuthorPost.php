@@ -26,9 +26,13 @@ namespace Scopubs\Author;
  * wanted.
  */
 
+use Scopubs\Validation\DataValidator;
+
 
 /**
  * Class ObservedAuthorPost
+ *
+ *
  * @package Scopubs\Author
  */
 class ObservedAuthorPost {
@@ -44,13 +48,13 @@ class ObservedAuthorPost {
     public $affiliation_blacklist;
 
     // CONSTANT VALUES
-    public const INSERT_VALUE_VALIDATION = [
-        'first_name'            => ['validate_is_string', 'cleanup_string'],
-        'last_name'             => ['validate_is_string', 'cleanup_string'],
-        'scopus_author_ids'     => ['validate_is_array', 'validate_not_empty', 'cleanup_int_elements'],
-        'category_ids'          => ['validate_is_array', 'validate_not_empty', 'cleanup_int_elements'],
+    public const INSERT_VALUE_VALIDATORS = [
+        'first_name'            => ['validate_is_string'],
+        'last_name'             => ['validate_is_string'],
+        'scopus_author_ids'     => ['validate_is_array', 'sanitize_int_elements'],
+        'category_ids'          => ['validate_is_array', 'validate_not_empty', 'sanitize_int_elements'],
         'affiliations'          => ['validate_is_array'],
-        'affiliation_blacklist' => ['validate_is_array', 'cleanup_int_elements']
+        'affiliation_blacklist' => ['validate_is_array', 'sanitize_int_elements']
     ];
 
     public function __construct(int $post_id) {
@@ -74,7 +78,7 @@ class ObservedAuthorPost {
         // first of all we need to validate the array of arguments to check if every important parameter is provided.
         // In the previous version I didnt check this, but instead used an array of defaults. I think this is not a
         // good idea. When inserting you should be as explicit as possible about all values.
-        $args = self::validate_insert_args($args);
+        $args = DataValidator::apply_array($args, self::INSERT_VALUE_VALIDATORS);
 
         // The postarr is an array with arguments in exactly the format in which wordpress needs it to be passed to the
         // function "wp_insert_post" which will actually create the new post. The method create_postarr uses the
@@ -86,53 +90,7 @@ class ObservedAuthorPost {
         return $post_id;
     }
 
-    public static function validate_insert_args(array $args) {
-        $class_name = get_called_class();
-        $validated_args = [];
-
-        foreach ($args as $key => $value) {
-            $validation_methods = self::INSERT_VALUE_VALIDATION[$key];
-
-            $validated_value = $value;
-            foreach ($validation_methods as $validation_method) {
-                $validated_value = call_user_func_array([$class_name, $validation_method], [$key, $validated_value]);
-            }
-            $validated_args[$key] = $validated_value;
-        }
-        return $validated_args;
-    }
-
     public static function create_postarr(array $args) {
         return [];
-    }
-
-    // -- Value validation methods
-
-    public static function validate_is_string(string $key, $value) {
-        if (is_string($value)) {
-            return $value;
-        } else {
-            throw new \InvalidArgumentException("${key} needs to be of type string!");
-        }
-    }
-
-    public static function validate_is_array(string $key, $value) {
-        if (is_array($value)) {
-            return $value;
-        } else {
-            throw new \InvalidArgumentException("${key} needs to be an array!");
-        }
-    }
-
-    public static function validate_not_empty(string $key, $value) {
-        return $value;
-    }
-
-    public static function cleanup_int_elements(string $key, array $value) {
-        return $value;
-    }
-
-    public static function cleanup_string(string $key, string $value) {
-        return $value;
     }
 }
