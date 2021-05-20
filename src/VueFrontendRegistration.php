@@ -62,7 +62,7 @@ class VueFrontendRegistration {
 
     // -- Registering scripts and stylesheets
 
-    public function register_stylesheets() {
+    public function register_styles() {
         // The stylesheet is called the same for the production and the development version. Thus we do not need to
         // check which is the case here.
         $style_src = $this->dist_url . $this->style_file;

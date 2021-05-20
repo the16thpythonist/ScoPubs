@@ -5,13 +5,17 @@ MAINTAINER Jonas Teufel <jonseb1998@gmail.com>
 # We'll need python for a convenience script which blocks the foreground execution until we can be sure that the
 # database is loaded. This is a docker compose quirk since it starts the database at the same time with the web
 # container.
+# SVN is apparently needed for the script which initializes the wordpress unittest environment
 RUN apt-get update && \
     apt-get install -y git && \
+    apt-get install -y subversion && \
     apt-get install -y curl && \
+    apt-get install -y mariadb-client && \
     apt-get install -y python3 python3-pip
 RUN python3 -m pip install pymysql click
 
 # === BASIC SETUP ===
+ENV PLUGIN_NAME="scopubs"
 ENV WP_PATH="/usr/src/wordpress"
 COPY docker/custom-entrypoint.sh /usr/src/wordpress/custom-entrypoint.sh
 COPY docker/wait_for_mysql.py "$WP_PATH/wait_for_mysql.py"
@@ -46,17 +50,17 @@ ENV WPCLI_PATH="$HOME_PATH/wp-cli.phar"
 ENV WPCLI_COMMAND="php $WPCLI_PATH --allow-root --path=$WP_PATH"
 RUN cd $HOME_PATH && \
     curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
-    ls -a && \
     $WPCLI_COMMAND --version && \
     $WPCLI_COMMAND --info
 
-
-# === INSTALLING THIS PLUGIN ===
-ENV PLUGIN_PATH="$WP_PATH/wp-content/plugins/helmholtz-plugin"
-RUN mkdir $PLUGIN_PATH && \
-    rm -r "$WP_PATH/wp-content/plugins/akismet" && \
-    rm "$WP_PATH/wp-content/plugins/hello.php" && \
-    ls -a "$WP_PATH/wp-content/plugins/helmholtz-plugin"
+# -- INSTALLING PHPUNIT --
+# Phpunit will be used for performing the unittests of wordpress.
+# https://github.com/sebastianbergmann/phpunit#installation
+ENV PHPUNIT_PATH="$HOME_PATH/phpunit.phar"
+ENV PHPUNIT_COMMAND="php $PHPUNIT_PATH"
+RUN cd $HOME_PATH && \
+    curl "https://phar.phpunit.de/phpunit-7.5.9.phar" > $PHPUNIT_PATH && \
+    $PHPUNIT_COMMAND --version
 
 ENTRYPOINT ["/usr/src/wordpress/custom-entrypoint.sh"]
 

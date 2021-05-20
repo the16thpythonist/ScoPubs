@@ -5,7 +5,7 @@ use Scopubs\Author\ObservedAuthorPost;
 
 class ObservedAuthorPostTest extends TestCase {
 
-    public function test_validate_insert_args_working() {
+    public function test_create_postarr_working() {
         // This is a pretty standard set of arguments for creating a new author post, this should be working
         $args = [
             'first_name'                => 'Jonas',
@@ -16,7 +16,7 @@ class ObservedAuthorPostTest extends TestCase {
             'affiliation_blacklist'     => []
         ];
 
-        $validated_args = ObservedAuthorPost::validate_insert_args($args);
-        $this->assertIsArray($validated_args);
+        $postarr = ObservedAuthorPost::create_postarr($args);
+        $this->assertIsArray($postarr);
     }
 }

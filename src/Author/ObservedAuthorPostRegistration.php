@@ -15,8 +15,10 @@ class ObservedAuthorPostRegistration
      *      this is an argument, because I want to preserve the possibility to change this in case it collided with
      *      the identifier of another plugin. Default is "observed-author"
      */
-    public function __construct(string $post_type = "observed-author") {
-        $this->post_type = $post_type;
+    public function __construct(string $post_type = 'observed-author') {
+        // The actual string to be used as the post type identifier / handle is defined as a static attribute of the
+        // ObservedAuthorPost class, which is the actual wrapper class for this post type.
+        $this->post_type = ObservedAuthorPost::$post_type;
     }
 
     /**
@@ -28,11 +30,14 @@ class ObservedAuthorPostRegistration
         // The method "register_post_type" actually calls the "register_post_type" function of wordpress with all the
         // necessary arguments for the author post type. New post types need to be registered during the "init" action
         add_action( 'init', [$this, 'register_post_type'] );
+
+        // Registers all the meta fields defined by ObservedAuthorPost
+        add_action( 'init', [$this, 'register_post_meta'] );
     }
 
     /**
      * Calls the wordpress "register_post_type" function with the appropriate arguments for this post type. Should be
-     * hooked into the "init" action
+     * hooked into the "init" action.
      *
      * @return void
      */
@@ -101,5 +106,23 @@ class ObservedAuthorPostRegistration
                 ]
             ]
         );
+    }
+
+    /**
+     * Registers all the meta fields for the observed author post type with wordpress. Strictly speaking the
+     * registration of meta fields is not necessary. One could just simply add/manipulate meta fields for a post
+     * without "prior notification" for wordpress, but it is good practice and allows to define additional options for
+     * the meta fields such as a description and the REST visibility.
+     *
+     * @return void
+     */
+    public function register_post_meta() {
+        // The specific arguments for each meta field are actually defined in the class variable "META_FIELDS" of the
+        // ObservedAuthorPost class. This design choice has been made to be able to only have to modifiy the post
+        // meta in a single class (Since the post wrapper class is the one which directly handles the loading of the
+        // meta values, they should be managed there)
+        foreach (ObservedAuthorPost::META_FIELDS as $meta_field => $args) {
+            register_post_meta( $this->post_type, $meta_field, $args );
+        }
     }
 }

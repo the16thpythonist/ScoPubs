@@ -24,6 +24,9 @@ namespace Scopubs\Author;
  * But I am choosing to do it as meta values anyways because that is easier to do at first and I just dont really see
  * the usage in having it be a taxonomy at the moment. I am fairly certain, that I could change that later on if I
  * wanted.
+ * One essential with the affiliations is also this: Their management within the scopus database itself is not very
+ * consistent there might be duplications which all refer to the same institution and a lot of times the names are
+ * spelled wrong etc.
  */
 
 use Scopubs\Validation\DataValidator;
@@ -37,22 +40,62 @@ use Scopubs\Validation\DataValidator;
  */
 class ObservedAuthorPost {
 
+    // -- Static values
+    public static $post_type = 'observed-author';
+
+    // -- Instance attributes
+
     public $post_id;
     public $post;
 
     public $first_name;
     public $last_name;
     public $scopus_author_ids;
-    public $category_ids;
+    public $category_ids; // ACTUALLY: CATEGORY IDS SHOULD BE
     public $affiliations;
     public $affiliation_blacklist;
 
-    // CONSTANT VALUES
+    // -- Class constants
+
+    public const META_FIELDS = [
+        'first_name'            => [
+            'type'                  => 'string',
+            'description'           => 'The first name of the author',
+            'single'                => true,
+            'show_in_rest'          => true
+        ],
+        'last_name'             => [
+            'type'                  => 'string',
+            'description'           => 'The last name / given name of the author',
+            'single'                => true,
+            'show_in_rest'          => true
+        ],
+        'scopus_author_ids'     => [
+            'type'                  => 'array',
+            'description'           => 'A list of the scopus author IDs associated with the author',
+            'single'                => true,
+            'show_in_rest'          => true
+        ],
+        'affiliations'          => [
+            'type'                  => 'array',
+            'description'           => 'An associative array defining the affiliations of the author. The key is the '.
+                                       'int affiliation ID and the values are assoc. arrays themselves which describe '.
+                                       'the attributes of the affiliation',
+            'single'                => true,
+            'show_in_rest'          => true
+        ],
+        'affiliation_blacklist' => [
+            'type'                  => 'array',
+            'description'           => 'An array with the int affiliation IDs which are blacklisted for this author',
+            'single'                => true,
+            'show_in_rest'          => true
+        ]
+    ];
+
     public const INSERT_VALUE_VALIDATORS = [
         'first_name'            => ['validate_is_string'],
         'last_name'             => ['validate_is_string'],
         'scopus_author_ids'     => ['validate_is_array', 'sanitize_int_elements'],
-        'category_ids'          => ['validate_is_array', 'validate_not_empty', 'sanitize_int_elements'],
         'affiliations'          => ['validate_is_array'],
         'affiliation_blacklist' => ['validate_is_array', 'sanitize_int_elements']
     ];
@@ -67,10 +110,15 @@ class ObservedAuthorPost {
         $this->first_name = get_post_meta($this->post_id, 'first_name', true);
         $this->last_name = get_post_meta($this->post_id, 'last_name', true);
         $this->scopus_author_ids = get_post_meta($this->post_id, 'scopus_author_ids', true);
-        $this->category_ids = get_post_meta($this->post_id, 'category_ids', true);
+        // $this->category_ids = get_post_meta($this->post_id, 'category_ids', true);
         $this->affiliations = get_post_meta($this->affiliations, 'affiliations', true);
         $this->affiliation_blacklist = get_post_meta($this->affiliation_blacklist, 'affiliation_blacklist', true);
     }
+
+    // == STATIC METHODS
+    // The static methods will be used to perform general operations for this custom post type. These general operations
+    // affect the post type as a whole and are not bound to a specific instance. This includes things like inserting
+    // a new post.
 
     // -- Inserting new posts
 
@@ -91,6 +139,21 @@ class ObservedAuthorPost {
     }
 
     public static function create_postarr(array $args) {
-        return [];
+        $post_title = self::create_post_title($args['first_name'], $args['last_name']);
+        return [
+            'post_type'             => self::$post_type,
+            'post_title'            => $post_title,
+            'meta_input'            => [
+                'first_name'            => $args['first_name'],
+                'last_name'             => $args['last_name'],
+                'scopus_author_ids'     => $args['scopus_author_ids'],
+                'affiliations'          => $args['affiliations'],
+                'affiliation_blacklist' => $args['affiliation_blacklist']
+            ]
+        ];
+    }
+
+    public static function create_post_title(string $first_name, string $last_name) {
+        return "${last_name}, ${first_name}";
     }
 }

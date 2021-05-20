@@ -15,7 +15,7 @@
 require_once 'vendor/autoload.php';
 
 use Scopubs\Author\ObservedAuthorPostRegistration;
-use Scopubs\PostTypes\PublicationPostRegistration;
+use Scopubs\Publication\PublicationPostRegistration;
 use Scopubs\VueFrontendRegistration;
 
 // == DEFINING CONSTANTS

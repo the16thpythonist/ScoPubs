@@ -120,3 +120,6 @@ Credits
 
 This RST file was created with lots of help from
 `RST Cheatsheet <https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst>`_
+
+PHP Dependencies are manages by the PHP package manager `Composer <https://getcomposer.org/>`_
+

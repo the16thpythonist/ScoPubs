@@ -3,7 +3,11 @@ version: '3.2'
 services:
 
   scopubs-wordpress-db:
-    image: mysql:8.0
+    # This is an older version of php. The newest version is 8.x
+    # This is actually intentional, with the newest version the testing would not work because the mysql client which
+    # is installed on the wordpress container cannot handle the new way of authenticating passwords of this new mysql
+    # version or something like that...
+    image: mysql:5.7.34
     restart: on-failure
     ports:
       - "3306:3306"
@@ -56,6 +60,10 @@ services:
       # Obviously we want to use this for development so we need to map the local folder (where we can actually change
       # the code) to the corresponding plugin folder within the container.
       - ..:/var/www/html/wp-content/plugins/scopubs
+      # The wordpress unit testing setup saves a whole new installation of wordpress into the tmp folder. If this
+      # would have to be downloaded everytime the tests are executed (since tmp obviously resets with container
+      # restart) that would take a lot of time.
+      - /tmp:/tmp
 
 volumes:
   scopubs-web: {}
