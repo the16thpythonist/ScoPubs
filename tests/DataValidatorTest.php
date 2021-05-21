@@ -18,16 +18,22 @@ class DataValidatorTest extends TestCase {
     }
 
     public function test_validate_is_array() {
+
+
         // Empty array should be fine
         $valid = [];
         DataValidator::apply_single($valid, ['validate_is_array']);
         $this->assertTrue(is_array($valid));
 
         // associative array should be fine.
-        $valid = [];
+        $valid = [
+            'key1' => 'value1',
+            'key2' => 'value2'
+        ];
         DataValidator::apply_single($valid, ['validate_is_array']);
         $this->assertTrue(is_array($valid));
 
+        // string should not work
         $invalid = 'array';
         $this->expectException(ValidationError::class);
         DataValidator::apply_single($invalid, ['validate_is_array']);
@@ -68,5 +74,24 @@ class DataValidatorTest extends TestCase {
 
         $args = DataValidator::apply_array($args, $validators);
         $this->assertTrue(count($args) == 3);
+    }
+
+    public function test_apply_array_with_more_validators_than_args() {
+        // Theoretically, the apply array method should also work when passing a validator array which contains
+        // more entries than the args array. That is the intended way at least. This method tests this.
+        $args = [
+            'first'     => 'my string',
+            'second'    => []
+        ];
+
+        $validators = [
+            'first'     => ['validate_is_string'],
+            'second'    => ['validate_is_array'],
+            'third'     => ['validate_is_string']
+        ];
+
+        $validated_args = DataValidator::apply_array($args, $validators);
+        $this->assertEquals(count($args), count($validated_args));
+        $this->assertEquals($args, $validated_args);
     }
 }

@@ -111,8 +111,8 @@ class ObservedAuthorPost {
         $this->last_name = get_post_meta($this->post_id, 'last_name', true);
         $this->scopus_author_ids = get_post_meta($this->post_id, 'scopus_author_ids', true);
         // $this->category_ids = get_post_meta($this->post_id, 'category_ids', true);
-        $this->affiliations = get_post_meta($this->affiliations, 'affiliations', true);
-        $this->affiliation_blacklist = get_post_meta($this->affiliation_blacklist, 'affiliation_blacklist', true);
+        $this->affiliations = get_post_meta($this->post_id, 'affiliations', true);
+        $this->affiliation_blacklist = get_post_meta($this->post_id, 'affiliation_blacklist', true);
     }
 
     // == STATIC METHODS
@@ -122,6 +122,27 @@ class ObservedAuthorPost {
 
     // -- Inserting new posts
 
+    /**
+     * Inserts a new observed author into the database based on the provided $args.
+     * This method should always be used to insert a new observed author! The wordpress post object which represents
+     * the author post needs to be created with some derived properties which can only be guaranteed to be handled
+     * correctly when this method is used.
+     *
+     * The assoc. $arg array HAS TO contain the following keys:
+     *
+     * - first_name: The string first name of the author
+     * - last_name: The string last name of the author
+     * - scopus_author_ids: An array with the integer author ids of the author
+     * - affiliations: An associative array whose keys are the int ids of the authors scopus affiliations and the
+     *      values are themselves assoc arrays which describe the properties "name", "id" and "city" of the affiliation
+     * - affiliation_blacklist: An array with the int ids of those affiliations which are to be considered blacklisted
+     *      for this author
+     *
+     * @param array $args
+     *
+     * @return int|\WP_Error
+     * @throws \Scopubs\Validation\ValidationError
+     */
     public static function insert(array $args) {
         // first of all we need to validate the array of arguments to check if every important parameter is provided.
         // In the previous version I didnt check this, but instead used an array of defaults. I think this is not a
@@ -138,6 +159,30 @@ class ObservedAuthorPost {
         return $post_id;
     }
 
+    public static function update(int $post_id, array $args) {
+        $args = DataValidator::apply_array($args, self::INSERT_VALUE_VALIDATORS);
+
+        // Should we check if this post exists before we insert it?
+        // This could also probably go into its own method...
+        $postarr = [
+            'ID'            => $post_id,
+            'meta_input'    => []
+        ];
+        foreach ($args as $arg => $value) {
+            $postarr['meta_input'][$arg] = $value;
+        }
+
+        return wp_update_post($postarr);
+    }
+
+    /**
+     * Given the insert/update arguments array, this method creates the $postarr array which is needed to actually
+     * perform the post insertion with wordpress.
+     *
+     * @param array $args The arguments array as defined for the update/insert method.
+     *
+     * @return array
+     */
     public static function create_postarr(array $args) {
         $post_title = self::create_post_title($args['first_name'], $args['last_name']);
         return [
@@ -153,6 +198,17 @@ class ObservedAuthorPost {
         ];
     }
 
+    /**
+     * Given the $first_name and the $last_name of an author this method creates the corresponding string which is to
+     * be used as the post title.
+     *
+     * The post title will be the last name comma the first name.
+     *
+     * @param string $first_name The string first name of the author
+     * @param string $last_name The string last name of the author
+     *
+     * @return string
+     */
     public static function create_post_title(string $first_name, string $last_name) {
         return "${last_name}, ${first_name}";
     }
