@@ -36,24 +36,47 @@ use Scopubs\Validation\DataValidator;
  * Class ObservedAuthorPost
  *
  *
+ * DESIGN CHOICE: TERMS - META VALUES
+ *
+ * So there are two ways to define custom attributes for a custom post type like this "observed author" post type:
+ * Using wordpress custom meta values or using custom taxonomy terms. As a general rule meta values are better if
+ * the values are unique to each post and terms are generally used when there is overlap between the posts. Also terms
+ * should be used if at some point one wants to search and categorize by these values with reasonable efficiency.
+ * For this class most things are mapped as meta values, but the author topics have heavy overlap and it would be good
+ * to be able to categorize authors by those.
+ *
+ * But thats not what this is actually about this is about the design choice of how these two different systems are
+ * handled idiomatically by this wrapper implementation: When creating a new wrapper instance by supplying the post id,
+ * both the meta values and the terms are loaded in the constructor and can then be accessed as instance attributes.
+ * This is totally fine for the meta values but for the terms this is a reduction of information: Terms are represented
+ * as term objects which contain multiple fields such as the actualy string content, the description, slug etc. But
+ * for the wrapper, the attribute value is simply a list of the string contents. Thus, I have decided to also add
+ * methods to the wrapper which explicitly load the list of term objects. In reality, needing the whole term object is
+ * probably an edge case.
+ *
  * @package Scopubs\Author
  */
 class ObservedAuthorPost {
 
     // -- Static values
-    public static $post_type = 'observed-author';
+    public static $post_type = 'observed_author';
+    public static $author_topic_taxonomy = 'author_topic';
 
     // -- Instance attributes
 
+    // intrinsic
     public $post_id;
     public $post;
 
+    // meta values
     public $first_name;
     public $last_name;
     public $scopus_author_ids;
-    public $category_ids; // ACTUALLY: CATEGORY IDS SHOULD BE
     public $affiliations;
     public $affiliation_blacklist;
+
+    // taxonomy terms
+    public $author_topics;
 
     // -- Class constants
 
@@ -110,9 +133,56 @@ class ObservedAuthorPost {
         $this->first_name = get_post_meta($this->post_id, 'first_name', true);
         $this->last_name = get_post_meta($this->post_id, 'last_name', true);
         $this->scopus_author_ids = get_post_meta($this->post_id, 'scopus_author_ids', true);
-        // $this->category_ids = get_post_meta($this->post_id, 'category_ids', true);
         $this->affiliations = get_post_meta($this->post_id, 'affiliations', true);
         $this->affiliation_blacklist = get_post_meta($this->post_id, 'affiliation_blacklist', true);
+
+        // Loading the terms
+        $this->author_topics = array_map(function ($term) { return $term->name; }, $this->get_author_topic_terms());
+    }
+
+    /**
+     * This method saves the current values of the observed author instance to the database record of the corresponding
+     * wordpress post.
+     *
+     * This saving only applies to the custom meta values like the author first and last name, affiliations array etc.
+     * It does not apply to changing the attributes directly related to the wordpress post like the post title for
+     * example.
+     *
+     * It DOES also save the custom taxonomy terms like the values of the "author_topics" array. The string values
+     * each will be saved as a term.
+     *
+     * @throws \Scopubs\Validation\ValidationError
+     *
+     * @return void
+     */
+    public function save() {
+        // Saving the meta values
+        $update_args = $this->get_update_args();
+        self::update($this->post_id, $update_args);
+
+        // Saving the taxonomy terms
+        wp_set_post_terms($this->post_id, $this->author_topics, self::$author_topic_taxonomy, false);
+    }
+
+    /**
+     * Returns an array, which can be used as the arguments array for the static "update" method. The values of this
+     * array are the currently set values of the corresponding attributes of the instance.
+     *
+     * @return array The $args array for the "update" method
+     */
+    public function get_update_args() {
+        return [
+            'first_name'                => $this->first_name,
+            'last_name'                 => $this->last_name,
+            'scopus_author_ids'         => $this->scopus_author_ids,
+            'affiliations'              => $this->affiliations,
+            'affiliation_blacklist'     => $this->affiliation_blacklist
+        ];
+    }
+
+    public function get_author_topic_terms() {
+        // https://developer.wordpress.org/reference/functions/wp_get_post_terms/
+        return wp_get_post_terms( $this->post_id, self::$author_topic_taxonomy, ['fields' => 'all']);
     }
 
     // == STATIC METHODS
@@ -159,6 +229,26 @@ class ObservedAuthorPost {
         return $post_id;
     }
 
+    /**
+     * Updates the observed author post with the given $post_id with the given $args.
+     *
+     * The assoc $args array CAN contain the following fields:
+     *
+     * - first_name: The string first name of the author
+     * - last_name: The string last name of the author
+     * - scopus_author_ids: An array with the integer author ids of the author
+     * - affiliations: An associative array whose keys are the int ids of the authors scopus affiliations and the
+     *      values are themselves assoc arrays which describe the properties "name", "id" and "city" of the affiliation
+     * - affiliation_blacklist: An array with the int ids of those affiliations which are to be considered blacklisted
+     *      for this author
+     *
+     * @param int $post_id The post id of the observed author post whose attributes to modify
+     * @param array $args An assoc array defining the new values which are to be used to replace the values of the
+     *      specified post.
+     *
+     * @return int The post id of the post which was updated.
+     * @throws \Scopubs\Validation\ValidationError
+     */
     public static function update(int $post_id, array $args) {
         $args = DataValidator::apply_array($args, self::INSERT_VALUE_VALIDATORS);
 

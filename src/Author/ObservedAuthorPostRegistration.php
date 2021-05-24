@@ -8,17 +8,17 @@ class ObservedAuthorPostRegistration
 {
     public $post_type;
 
+    public $author_topic_taxonomy;
+
     /**
      * ObservedAuthorPostRegistration constructor.
-     *
-     * @param string $post_type This is supposed to be the string which is to be used as the post type identifier.
-     *      this is an argument, because I want to preserve the possibility to change this in case it collided with
-     *      the identifier of another plugin. Default is "observed-author"
      */
-    public function __construct(string $post_type = 'observed-author') {
+    public function __construct() {
         // The actual string to be used as the post type identifier / handle is defined as a static attribute of the
         // ObservedAuthorPost class, which is the actual wrapper class for this post type.
         $this->post_type = ObservedAuthorPost::$post_type;
+
+        $this->author_topic_taxonomy = ObservedAuthorPost::$author_topic_taxonomy;
     }
 
     /**
@@ -33,6 +33,20 @@ class ObservedAuthorPostRegistration
 
         // Registers all the meta fields defined by ObservedAuthorPost
         add_action( 'init', [$this, 'register_post_meta'] );
+
+        // Registers the "Author Topic" taxonomy.
+        add_action( 'init', [$this, 'register_author_topic_taxonomy']);
+
+        // Disable the gutenberg block editor for this post type
+        add_filter( "use_block_editor_for_post", 'use_block_editor', 10 );
+    }
+
+    public function use_block_editor( $is_enabled, $post_type ) {
+        if ( $post_type == $this->post_type ) {
+            return false;
+        }
+
+        return $is_enabled;
     }
 
     /**
@@ -124,5 +138,44 @@ class ObservedAuthorPostRegistration
         foreach (ObservedAuthorPost::META_FIELDS as $meta_field => $args) {
             register_post_meta( $this->post_type, $meta_field, $args );
         }
+    }
+
+    /**
+     * Registers the "Author Topic" taxonomy. An author can be assigned with multiple author topics. These topics
+     * are essentially short string summaries of what kind of research the author is concerned with. When any
+     * publication of this author is being imported from scopus and then published, all the topics from all the
+     * observed authors which are authors of that publication will be saved as a meta info for that publication. This
+     * is an easy way of automatically sorting the automatically published publications into categories.
+     *
+     * @return void
+     */
+    public function register_author_topic_taxonomy() {
+        register_taxonomy( $this->author_topic_taxonomy, $this->post_type, [
+            'public'                                => true,
+            'show_in_rest'                          => true,
+            'show_ui'                               => true,
+            'show_in_nav_menus'                     => true,
+            'show_tagcloud'                         => true,
+            'show_admin_column'                     => true,
+            'hierarchical'                          => false,
+            'query_var'                             => 'author_topic',
+            'labels' => [
+                'name'                              => 'Author Topics',
+                'single_name'                       => 'Author Topic',
+                'menu_name'                         => 'Author Topics',
+                'name_admin_bar'                    => 'Author Topic',
+                'search_items'                      => 'Search Author Topics',
+                'popular_items'                     => 'Popular Author Topics',
+                'all_items'                         => 'All Author Topics',
+                'edit_item'                         => 'Edit Author Topic',
+                'view_item'                         => 'View Author Topic',
+                'update_item'                       => 'Update Author Topic',
+                'add_new_item'                      => 'Add New Author Topic',
+                'new_item_name'                     => 'New Author Topic Name',
+                'not_found'                         => 'No Author Topics Found',
+                'items_list_navigation'             => 'Author Topic List Navigation',
+                'items_list'                        => 'Author Topics List'
+            ]
+        ]);
     }
 }

@@ -8,7 +8,7 @@
 	convertWarningsToExceptions="true"
 	>
 	<testsuites>
-		<testsuite>
+		<testsuite name="wordpress">
 			<directory prefix="" suffix="Test.php">tests/</directory>
 			<exclude>vendor/</exclude>
 			<exclude>vendor</exclude>
