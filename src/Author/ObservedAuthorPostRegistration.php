@@ -35,7 +35,11 @@ class ObservedAuthorPostRegistration
         add_action( 'init', [$this, 'register_post_meta'] );
 
         // Registers the "Author Topic" taxonomy.
-        add_action( 'init', [$this, 'register_author_topic_taxonomy']);
+        add_action( 'init', [$this, 'register_author_topic_taxonomy'] );
+
+        // Adding the meta box, which displays the Vue component for the custom widgets for inputting the author
+        // meta information.
+        add_action( 'add_meta_boxes_' . $this->post_type, [$this, 'register_meta_box'] );
 
         // Disable the gutenberg block editor for this post type
         add_filter( "use_block_editor_for_post", 'use_block_editor', 10 );
@@ -177,5 +181,29 @@ class ObservedAuthorPostRegistration
                 'items_list'                        => 'Author Topics List'
             ]
         ]);
+    }
+
+    // -- Registering the meta box --
+
+    /**
+     *
+     */
+    public function register_meta_box() {
+        add_meta_box(
+            $this->post_type . '_meta',
+            'Observed Author Meta Information',
+            [$this, 'echo_meta_box'],
+            $this->post_type,
+            'normal',
+            'high'
+        );
+    }
+
+    public function echo_meta_box($post) {
+        ?>
+            <div id="scopubs-author-meta-component">
+                This Vue component apparently could not be loaded properly.
+            </div>
+        <?php
     }
 }
