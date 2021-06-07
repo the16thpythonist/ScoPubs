@@ -1,7 +1,8 @@
 <?php
 
-
 namespace Scopubs;
+
+use Scopubs\Author\ObservedAuthorPost;
 
 /**
  * Class VueFrontendRegistration
@@ -56,7 +57,7 @@ class VueFrontendRegistration {
         add_action( 'init', [$this, 'register_styles'] );
         add_action( 'init', [$this, 'register_scripts'] );
 
-        add_action( 'admin_enqueue_styles', [$this, 'enqueue_styles'] );
+        add_action( 'admin_enqueue_scripts', [$this, 'enqueue_styles'] );
         add_action( 'admin_enqueue_scripts', [$this, 'enqueue_scripts'] );
     }
 
@@ -79,6 +80,18 @@ class VueFrontendRegistration {
             $script_src = $this->dist_url . $this->script_file_production;
         }
         wp_register_script($this->script_handle, $script_src, [], $this->version, false);
+
+        // https://pippinsplugins.com/use-wp_localize_script-it-is-awesome/
+        // I didnt get this at first, but the script handle which is passed to this function needs to be the same as
+        // an already registered script for which you want to make the object available. Generally the object does NOT
+        // just become available in all JS!
+        // We need this to pass important information to the frontend application, most importantly the base URL for
+        // all rest urls, we wouldnt want to hard code this...
+        wp_localize_script($this->script_handle, 'WP', [
+            'rest_url'              => esc_url_raw( get_rest_url() ),
+            'nonce'                 => wp_create_nonce( 'wp_rest' ),
+            'author_post_type'      => ObservedAuthorPost::$post_type
+        ]);
     }
 
     // -- Actually enqueueing scripts and stylesheets

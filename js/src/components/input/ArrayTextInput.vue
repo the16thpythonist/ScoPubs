@@ -16,16 +16,16 @@
                     @input="onInput">
             <button
                     type="button"
-                    class="remove-element"
+                    class="remove"
                     @click.prevent="onRemove(index)">
-                Remove
+                -
             </button>
         </div>
         <button
                 type="button"
-                class="add-element"
+                class="add"
                 @click.prevent="onAdd()">
-            Add
+            +
         </button>
     </div>
 </template>
@@ -175,5 +175,43 @@
 </script>
 
 <style scoped>
+
+    .array-element {
+        display: flex;
+        flex-direction: row;
+        margin-bottom: 5px;
+    }
+
+    input {
+        flex: 2;
+        margin-right: 10px;
+    }
+
+    button {
+        border-style: solid;
+        border-width: 1px;
+        width: 30px;
+        height: 30px;
+        background-color: white;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2em;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #f5f5f5;
+        opacity: 80%;
+    }
+
+    button.add {
+        color: #46B450;
+        border-color: #46B450;
+    }
+
+    button.remove {
+        color: #dc3232;
+        border-color: #dc3232;
+    }
 
 </style>

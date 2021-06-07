@@ -84,34 +84,65 @@ class ObservedAuthorPost {
         'first_name'            => [
             'type'                  => 'string',
             'description'           => 'The first name of the author',
+            'default'               => '',
             'single'                => true,
             'show_in_rest'          => true
         ],
         'last_name'             => [
             'type'                  => 'string',
             'description'           => 'The last name / given name of the author',
+            'default'               => '',
             'single'                => true,
             'show_in_rest'          => true
         ],
+        // Interesting fact about these complex data types: I just spend an hour to figure out that to actually make
+        // them appear in the REST response it is not enough to simply supply show_in_rest as true. You have to
+        // give the whole array specification of the REST schema including all of the information about type and (!)
+        // item type.
         'scopus_author_ids'     => [
             'type'                  => 'array',
             'description'           => 'A list of the scopus author IDs associated with the author',
+            'default'               => [],
             'single'                => true,
-            'show_in_rest'          => true
+            'show_in_rest'          => [
+                'schema' => [
+                    'type'          => 'array',
+                    'items'         => [
+                        'type'      => 'int'
+                    ]
+                ]
+            ]
         ],
         'affiliations'          => [
-            'type'                  => 'array',
+            'type'                  => 'object', // Dictated by REST compatibility, this HAS TO be an object
             'description'           => 'An associative array defining the affiliations of the author. The key is the '.
                                        'int affiliation ID and the values are assoc. arrays themselves which describe '.
                                        'the attributes of the affiliation',
+            'default'               => [],
             'single'                => true,
-            'show_in_rest'          => true
+            'show_in_rest'          => [
+                'schema' => [
+                    'type'          => 'object',
+                    # https://make.wordpress.org/core/2019/10/03/wp-5-3-supports-object-and-array-meta-types-in-the-rest-api/
+                    # This is absolutely necessary if I want to use objects as kind of "dicts" where arbitrary
+                    # key value pairs are supported
+                    'additionalProperties' => true
+                ]
+            ]
         ],
         'affiliation_blacklist' => [
             'type'                  => 'array',
             'description'           => 'An array with the int affiliation IDs which are blacklisted for this author',
+            'default'               => [],
             'single'                => true,
-            'show_in_rest'          => true
+            'show_in_rest'          => [
+                'schema' => [
+                    'type'          => 'array',
+                    'items'         => [
+                        'type'      => 'int'
+                    ]
+                ]
+            ]
         ]
     ];
 

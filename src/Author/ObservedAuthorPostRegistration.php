@@ -43,6 +43,10 @@ class ObservedAuthorPostRegistration
 
         // Disable the gutenberg block editor for this post type
         add_filter( "use_block_editor_for_post", 'use_block_editor', 10 );
+
+        // Modifying the JSON response for this post type to also contain the custom meta fields
+        // https://wordpress.stackexchange.com/questions/227506/how-to-get-custom-post-meta-using-rest-api
+        add_filter( 'rest_prepare_' . $this->post_type, [$this, 'filter_rest_json'], 10, 3);
     }
 
     public function use_block_editor( $is_enabled, $post_type ) {
@@ -89,7 +93,12 @@ class ObservedAuthorPostRegistration
                 'supports' => [
                     'title',
                     'editor',
-                    'excerpt'
+                    'excerpt',
+                    // https://stackoverflow.com/questions/56460557/how-to-include-meta-fields-in-wordpress-api-post
+                    // Holy moly, they could be more transparent about this. I was searching for ages why I could not
+                    // interact with my meta data even though the meta fields were registered as "show_in_rest=true"
+                    // Apparently you also need this...
+                    'custom-fields'
                 ],
 
                 // Text labels
@@ -201,9 +210,22 @@ class ObservedAuthorPostRegistration
 
     public function echo_meta_box($post) {
         ?>
+            <script>var POST_ID = <?php echo $post->ID; ?>;</script>
             <div id="scopubs-author-meta-component">
                 This Vue component apparently could not be loaded properly.
             </div>
         <?php
+    }
+
+    public function filter_rest_json( $data, $post, $context ) {
+        $author_post = new ObservedAuthorPost($post->ID);
+
+        $data->data['first_name'] = $author_post->first_name;
+        $data->data['last_name'] = $author_post->last_name;
+        $data->data['scopus_author_ids'] = $author_post->scopus_author_ids;
+        $data->data['affiliations'] = $author_post->affiliations;
+        $data->data['affiliation_blacklist'] = $author_post->affiliation_blacklist;
+
+        return $data;
     }
 }
