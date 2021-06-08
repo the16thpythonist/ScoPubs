@@ -3,7 +3,18 @@
 
 namespace Scopubs\Author;
 
-
+/**
+ * Class ObservedAuthorPostRegistration
+ *
+ * This class wraps all tasks which need to be performed to properly register the "observed author" post type in
+ * wordpress. The main method responsible for these registering the custom callbacks to the appropriate hooks is the
+ * "register" method. This method should be called on the top level during the loading of the plugin.
+ *
+ *      $author_post_registration = new ObservedAuthorPostRegistration();
+ *      $author_post_registration->register();
+ *
+ * @package Scopubs\Author
+ */
 class ObservedAuthorPostRegistration
 {
     public $post_type;
@@ -47,6 +58,12 @@ class ObservedAuthorPostRegistration
         // Modifying the JSON response for this post type to also contain the custom meta fields
         // https://wordpress.stackexchange.com/questions/227506/how-to-get-custom-post-meta-using-rest-api
         add_filter( 'rest_prepare_' . $this->post_type, [$this, 'filter_rest_json'], 10, 3);
+
+        // https://www.smashingmagazine.com/2017/12/customizing-admin-columns-wordpress/
+        // This filter modifies which admin columns are shown for this post type
+        add_filter( 'manage_' . $this->post_type . '_posts_columns', [$this, 'manage_posts_columns'], 10, 1);
+        // This action hook then actually echoes the content for these custom admin columns
+        add_action( 'manage_' . $this->post_type . '_posts_custom_column', [$this, 'echo_post_column'], 10, 2);
     }
 
     public function use_block_editor( $is_enabled, $post_type ) {
@@ -92,7 +109,7 @@ class ObservedAuthorPostRegistration
                 // Features which the post type supports
                 'supports' => [
                     'title',
-                    'editor',
+                    // 'editor', // Actually I really dont need the editor at this point...
                     'excerpt',
                     // https://stackoverflow.com/questions/56460557/how-to-include-meta-fields-in-wordpress-api-post
                     // Holy moly, they could be more transparent about this. I was searching for ages why I could not
@@ -195,7 +212,7 @@ class ObservedAuthorPostRegistration
     // -- Registering the meta box --
 
     /**
-     *
+     * This method registers the custo meta box for this post type.
      */
     public function register_meta_box() {
         add_meta_box(
@@ -208,16 +225,40 @@ class ObservedAuthorPostRegistration
         );
     }
 
-    public function echo_meta_box($post) {
+    /**
+     * This function echoes the necessary html code which will create the author meta box in the edit page of this post
+     * type. This meta box will be used to enter and modify the custom meta fields for this post type such as the
+     * affiliations and the list of scopus author ids.
+     *
+     * @param \WP_Post $post The wordpress post object for the post in question.
+     */
+    public function echo_meta_box( \WP_Post $post ) {
+        // Since this widget will be managed by the Vue frontend, this is not a lot of html code, we merely need an
+        // element with the correct id, which will then be used by Vue to mount the frontend widget onto.
         ?>
-            <script>var POST_ID = <?php echo $post->ID; ?>;</script>
+            <script>
+                // By using "var" here we are making this a globally accessible variable. It is important that the
+                // information about which post ID the current post has is passed to the frontend code this way.
+                var POST_ID = <?php echo $post->ID; ?>;
+            </script>
             <div id="scopubs-author-meta-component">
                 This Vue component apparently could not be loaded properly.
             </div>
         <?php
     }
 
-    public function filter_rest_json( $data, $post, $context ) {
+    // -- Modifying the REST response --
+
+    /**
+     *
+     *
+     * @param $data
+     * @param $post
+     * @param $context
+     *
+     * @return mixed
+     */
+    public function filter_rest_json( object $data, \WP_Post $post, $context ) {
         $author_post = new ObservedAuthorPost($post->ID);
 
         $data->data['first_name'] = $author_post->first_name;
@@ -227,5 +268,54 @@ class ObservedAuthorPostRegistration
         $data->data['affiliation_blacklist'] = $author_post->affiliation_blacklist;
 
         return $data;
+    }
+
+    // -- Modifying the admin columns --
+
+    /**
+     * Callback for the filter "manage_{posttype}_posts_columns". This filter method is supposed to modify the array,
+     * which defines the admin columns for the post type. for each key value pair in the returned array, the admin
+     * list view has one column, where the value of the array defines the string name of the column header.
+     *
+     * @param array $columns An assoc array, where the string key is the identifier for an admin column and the string
+     *      value is the header displayed.
+     *
+     * @return array
+     */
+    public function manage_posts_columns( array $columns ) {
+        $columns = [
+            'cb'            => $columns['cb'],
+            'title'         => $columns['title'],
+            'scopus_id'     => __( 'Scopus ID' ),
+            'topics'        => __( 'Topics' ),
+            'date'          => $columns['date']
+        ];
+
+        return $columns;
+    }
+
+    /**
+     * This method is the callback for the action hook "manage_{posttype}_posts_custom_column". This action hook is
+     * invoked for every column of every row (where each row represents one post) and it is responsible for echoing
+     * the actual value to be displayed.
+     *
+     * @param string $column The string identifier for which column
+     * @param int $post_id The ID of the post for the current row
+     */
+    public function echo_post_column( string $column, int $post_id ) {
+        $author_post = new ObservedAuthorPost($post_id);
+
+        if ( $column === 'first_name' ) {
+            echo $author_post->first_name;
+        }
+        else if ( $column === 'last_name' ) {
+            echo $author_post->last_name;
+        }
+        else if ( $column === 'scopus_id' ) {
+            echo implode(', ', $author_post->scopus_author_ids);
+        }
+        else if ( $column === 'topics' ) {
+            echo implode(', ', $author_post->author_topics);
+        }
     }
 }

@@ -45,21 +45,43 @@ Api.prototype.post = function(endpoint, data) {
 
 Api.prototype.getObservedAuthor = function(postID) {
     return this.get(this.authorEndpoint + postID).then(function (data) {
-        console.log(data);
+        // We only need to fix one thing: Curiously, the "affiliations" field is defined as an object type value
+        // and it works fine except for when there are no entries: Instead of giving an empty object it gives and empty
+        // array?
+        if (typeof(data['affiliations'] === 'array') && data['affiliations'].length === 0) {
+            data['affiliations'] = {};
+        }
+
         return data;
     })
 }
 
 Api.prototype.updateObservedAuthor = function(postID, author) {
     return this.post(this.authorEndpoint + postID, {
-        "id":                           postID,
-        "title":                        "Teufel, Jonas",
-        "meta": {
-            "first_name":               "Jonas",
-            "last_name":                "Teufel",
-            "scopus_author_ids":        [1, 2],
-            "affiliations":             {"hello": "world"},
-            "affiliations_blacklist":   [1]
+        'id':                           postID,
+        'type':                         WP['author_post_type'],
+        'title':                        `${author["last_name"]}, ${author["first_name"]}`,
+        'meta': {
+            'first_name':               author['first_name'],
+            'last_name':                author['last_name'],
+            'scopus_author_ids':        author['scopus_author_ids'],
+            'affiliations':             author['affiliations'],
+            'affiliations_blacklist':   author['affiliation_blacklist']
+        }
+    })
+}
+
+Api.prototype.postObservedAuthor = function(author) {
+    return this.post(this.authorEndpoint, {
+        'type':                         WP['author_post_type'],
+        'status':                       'publish',
+        'title':                        `${author["last_name"]}, ${author["first_name"]}`,
+        'meta': {
+            'first_name':               author['first_name'],
+            'last_name':                author['last_name'],
+            'scopus_author_ids':        author['scopus_author_ids'],
+            'affiliations':             author['affiliations'],
+            'affiliations_blacklist':   author['affiliation_blacklist']
         }
     })
 }

@@ -89,6 +89,7 @@ class VueFrontendRegistration {
         // all rest urls, we wouldnt want to hard code this...
         wp_localize_script($this->script_handle, 'WP', [
             'rest_url'              => esc_url_raw( get_rest_url() ),
+            'admin_url'             => esc_url_raw( get_admin_url() ),
             'nonce'                 => wp_create_nonce( 'wp_rest' ),
             'author_post_type'      => ObservedAuthorPost::$post_type
         ]);

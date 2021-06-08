@@ -216,6 +216,14 @@
         font-size: 1.1em;
     }
 
+    div.row.empty {
+        font-size: 1.1em;
+        padding-left: 15px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        color: #82878c;
+    }
+
     div.col {
         flex: 1;
         margin-left: 10px;
