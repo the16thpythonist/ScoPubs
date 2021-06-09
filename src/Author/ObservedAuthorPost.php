@@ -35,6 +35,7 @@ use Scopubs\Validation\DataValidator;
 /**
  * Class ObservedAuthorPost
  *
+ * This class implements a wrapper for interacting with the observed author post type
  *
  * DESIGN CHOICE: TERMS - META VALUES
  *
@@ -147,11 +148,11 @@ class ObservedAuthorPost {
     ];
 
     public const INSERT_VALUE_VALIDATORS = [
-        'first_name'            => ['validate_is_string'],
-        'last_name'             => ['validate_is_string'],
-        'scopus_author_ids'     => ['validate_is_array', 'sanitize_int_elements'],
-        'affiliations'          => ['validate_is_array'],
-        'affiliation_blacklist' => ['validate_is_array', 'sanitize_int_elements']
+        'first_name'                => ['validate_is_string'],
+        'last_name'                 => ['validate_is_string'],
+        'scopus_author_ids'         => ['validate_is_array', 'sanitize_int_elements'],
+        'affiliations'              => ['validate_is_array'],
+        'affiliation_blacklist'     => ['validate_is_array', 'sanitize_int_elements']
     ];
 
     public function __construct(int $post_id) {

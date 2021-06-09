@@ -22,10 +22,10 @@ use Scopubs\VueFrontendRegistration;
 define('SCOPUBS_URL_BASE', plugin_dir_url(__FILE__));
 
 // == REGISTERING CUSTOM POST TYPES
-$observed_author_registration = new ObservedAuthorPostRegistration( 'observed-author' );
+$observed_author_registration = new ObservedAuthorPostRegistration();
 $observed_author_registration->register();
 
-$publication_registration = new PublicationPostRegistration( 'publication' );
+$publication_registration = new PublicationPostRegistration();
 $publication_registration->register();
 
 $frontend_registration = new VueFrontendRegistration();
