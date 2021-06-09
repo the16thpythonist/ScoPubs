@@ -3,6 +3,7 @@
 
 namespace Scopubs\Publication;
 
+use Scopubs\Validation\DataValidator;
 use Scopubs\Author\ObservedAuthorPost;
 
 /**
@@ -54,6 +55,9 @@ class PublicationPost {
     // intrinsic
     public $post_id;
     public $post;
+
+    public $title;
+    public $abstract;
 
     // meta values
     public $publish_date;
@@ -177,6 +181,9 @@ class PublicationPost {
         $this->post_id = $post_id;
         $this->post = get_post($this->post_id);
 
+        $this->title = $this->post->post_title;
+        $this->abstract = $this->post->post_content;
+
         // Loading post meta values
         $this->publish_date = get_post_meta($this->post_id, 'publish_date', true);
         $this->scopus_id = get_post_meta($this->post_id, 'scopus_id', true);
@@ -234,6 +241,87 @@ class PublicationPost {
     // -- Inserting new posts
 
     public static function insert(array $args) {
+        $args = DataValidator::apply_array($args, self::INSERT_VALUE_VALIDATORS);
 
+        $postarr = self::create_postarr($args);
+        $post_id = wp_insert_post($postarr);
+
+        return $post_id;
+    }
+
+    public static function update(int $post_id, array $args) {
+        $args = DataValidator::apply_array($args, self::INSERT_VALUE_VALIDATORS);
+
+        $postarr = [
+            'ID'            => $post_id,
+            'meta_input'    => []
+        ];
+        foreach ($args as $arg => $value) {
+            $postarr['meta_input'][$arg] = $value;
+        }
+
+        return wp_update_post($postarr);
+    }
+
+    public static function conditional_array_mapping( array $source_array, array $mapping ) {
+        $result = [];
+        foreach ($mapping as $source_key => $target_query) {
+            // This where the conditional part comes in:
+            if (!array_key_exists($source_key, $source_array)) {
+                continue;
+            }
+
+            $target_keys = explode('/', $target_query);
+            // Creating array structure
+            $current_index = 0;
+            // https://www.php.net/manual/en/language.references.php
+            $current_array = &$result;
+            while ($current_index < count($target_keys) - 1) {
+                $current_key = $target_keys[$current_index];
+                if (!array_key_exists($current_key, $current_array) || !is_array($current_array[$current_key])) {
+                    $current_array[$current_key] = [];
+                }
+                $current_array = &$current_array[$current_key];
+                $current_index += 1;
+            }
+
+            // Actually setting the value on the lowest level
+            $last_key = $target_keys[$current_index];
+            $current_array[$last_key] = $source_array[$source_key];
+            var_dump($current_array);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Given the insert/update arguments array $args, this method creates the $postarr array which is needed to
+     * actually perform the post insertion with wordpress.
+     *
+     * For information about which values $args is supposed contain see the insert method.
+     *
+     * @param array $args The arguments array defines for the update/insert method
+     *
+     * @return array
+     */
+    public static function create_postarr(array $args) {
+        return [
+            'post_type'             => self::$post_type,
+            'post_title'            => $args['title'],
+            'post_content'          => $args['abstract'],
+            'post_status'           => 'publish',
+            'meta_input' => [
+                'publish_date'      => $args['publish_date'],
+                'scopus_id'         => $args['scopus_id'],
+                'kitopen_id'        => $args['kitopen_id'],
+                'doi'               => $args['doi'],
+                'eid'               => $args['eid'],
+                'issn'              => $args['issn'],
+                'journal'           => $args['journal'],
+                'volume'            => $args['volume'],
+                'author_count'      => $args['author_count'],
+                'authors'           => $args['authors']
+            ]
+        ];
     }
 }
