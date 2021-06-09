@@ -27,7 +27,24 @@ class Util {
      *
      * To illustrate how this function works consider the following example.
      *
+     *      $source_array = [
+     *          'name': 'Max',
+     *          'city': 'Rome'
+     *      ];
      *
+     *      $mapping = [
+     *          'name' => 'first_name',
+     *          'city' => 'info/city'
+     *      ];
+     *
+     *      $target_array = Util::array_mapping($source_array, $mapping);
+     *      // Equals the following
+     *      $target_array = [
+     *          'first_name' => 'Max',
+     *          'info' => [
+     *              'city' => 'Rome'
+     *          ]
+     *      ];
      *
      * @param array $source_array
      * @param array $mapping
@@ -36,19 +53,30 @@ class Util {
      */
     public static function array_mapping( array $source_array, array $mapping ) {
         $result = [];
+        // $mapping is an associative array, where keys and values are strings. The keys describe the keys
+        // of the source array and the values define the structure at which the corresponding values of the source
+        // array should have in the resulting target array.
+        // "Structure" means a query string, where an unknown number of multiple keys are separated by slash characters
+        // to define an additional layer of assoc array nesting.
         foreach ( $mapping as $source_key => $target_query ) {
-            // This where the conditional part comes in:
+            // This where the optional part comes in: If the mapping is not supposed to be strict we will simply
+            // ignore any entries where the mapping defines a source key which is not actually present in the given
+            // source array.
             if ( ! array_key_exists( $source_key, $source_array ) ) {
                 continue;
             }
 
             $target_keys = explode( '/', $target_query );
-            // Creating array structure
+            // Creating array structure. This whole upcoming while loop serves the single purpose of creating the
+            // the necessary nesting structure for the given query
             $current_index = 0;
             // https://www.php.net/manual/en/language.references.php
+            // I only recently found out, that php does not pass references by default. You actually have to specify
+            // with the special & character that a variable is to refer to an actual reference of an object.
             $current_array = &$result;
             while ( $current_index < count( $target_keys ) - 1 ) {
                 $current_key = $target_keys[ $current_index ];
+                // If the array for the nesting does not exist create it and move one level deeper
                 if ( ! array_key_exists( $current_key, $current_array ) || ! is_array( $current_array[ $current_key ] ) ) {
                     $current_array[ $current_key ] = [];
                 }
@@ -56,10 +84,11 @@ class Util {
                 $current_index += 1;
             }
 
-            // Actually setting the value on the lowest level
+            // Actually setting the value on the lowest level.
+            // After the previous section we can assume that $current_array actually contains a reference to the
+            // deepest level specified by the query.
             $last_key                   = $target_keys[ $current_index ];
             $current_array[ $last_key ] = $source_array[ $source_key ];
-            var_dump( $current_array );
         }
 
         return $result;
