@@ -21,6 +21,10 @@ class LogPostRegistration {
 
         // Registers the meta box, which is then displayed in in the admin edit screen for this post type
         add_action( 'add_meta_boxes_' . $this->post_type, [$this, 'register_meta_box'] );
+
+        // Modifying the JSON response for this post type to also contain the custom meta fields
+        // https://wordpress.stackexchange.com/questions/227506/how-to-get-custom-post-meta-using-rest-api
+        add_filter( 'rest_prepare_' . $this->post_type, [$this, 'filter_rest_json'], 10, 3);
     }
 
     public function register_post_type() {
@@ -119,5 +123,18 @@ class LogPostRegistration {
                 This Vue component apparently could not be loaded properly.
             </div>
         <?php
+    }
+
+    // -- Modify REST response
+
+    public function filter_rest_json( object $data, \WP_Post $post, $context ) {
+        $log_post = new LogPost($post->ID);
+
+        $data->data['title'] = $log_post->title;
+        $data->data['running'] = $log_post->title;
+        $data->data['entries'] = $log_post->entries;
+        $data->data['log_levels'] = $log_post->get_log_levels();
+
+        return $data;
     }
 }

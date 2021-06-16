@@ -11,6 +11,13 @@ class LogPost {
 
     // -- Static values
     public static $post_type = 'log';
+    public static $datetime_format = 'Y-m-d H:i:s';
+    public static $log_levels = [
+        'error'                     => 'error',
+        'warning'                   => 'warning',
+        'info'                      => 'info',
+        'debug'                     => 'debug'
+    ];
 
     // -- Instance attributes
 
@@ -44,7 +51,7 @@ class LogPost {
                 'schema' => [
                     'type'          => 'array',
                     'items'         => [
-                        'type'      => 'string'
+                        'type'      => 'object'
                     ]
                 ]
             ]
@@ -64,7 +71,7 @@ class LogPost {
         $this->title = $this->post->post_title;
 
         // Loading the meta values
-        $this->running = get_post_meta($this->post_id, 'running', true);
+        $this->running = (bool) get_post_meta($this->post_id, 'running', true);
         $this->entries = get_post_meta($this->post_id, 'entries', true);
     }
 
@@ -74,6 +81,58 @@ class LogPost {
             'running'           => $this->running,
             'entries'           => $this->entries,
         ];
+    }
+
+    public function save() {
+        $update_args = $this->get_update_args();
+        self::update($this->post_id, $update_args);
+    }
+
+    public function start() {
+        $this->running = true;
+    }
+
+    public function close() {
+        $this->running = false;
+        $this->save();
+    }
+
+    // -- the actual logging methods
+
+    public function log(string $log_level, string $message) {
+        if (!$this->running) {
+            throw new LogError(
+                "You are attempting to append a log message to the log '$this->title'. This is not possible " .
+                "because this log is not currently active/running!"
+            );
+        }
+
+        $entry = [
+            'message'       => $message,
+            'level'         => $log_level,
+            'time'          => date(self::$datetime_format)
+        ];
+        array_push($this->entries, $entry);
+    }
+
+    public function error(string $message) {
+        $this->log(self::$log_levels['error'], $message);
+    }
+
+    public function warning(string $message) {
+        $this->log(self::$log_levels['warning'], $message);
+    }
+
+    public function info(string $message) {
+        $this->log(self::$log_levels['info'], $message);
+    }
+
+    public function debug(string $message) {
+        $this->log(self::$log_levels['debug'], $message);
+    }
+
+    public function get_log_levels() {
+        return array_values(self::$log_levels);
     }
 
     // == STATIC METHODS
@@ -119,7 +178,7 @@ class LogPost {
             Util::require_array_keys($args, $keys);
         }
 
-        $postarr = Util::array_mapping($args, $keys);
+        $postarr = Util::array_mapping($args, $mapping);
         $postarr['post_status'] = 'publish';
         $postarr['post_type'] = self::$post_type;
 

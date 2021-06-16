@@ -1,9 +1,10 @@
 <?php
 
 use Scopubs\Util;
+use PHPUnit\Framework\TestCase;
 
 
-class UtilTest {
+class UtilTest extends TestCase{
 
     public function test_optional_array_mapping_works() {
         $source_array = [
@@ -34,7 +35,6 @@ class UtilTest {
         ];
 
         $target_array = Util::array_mapping($source_array, $mapping);
-        var_dump($target_array);
         $this->assertEquals($expected_array, $target_array);
     }
 }

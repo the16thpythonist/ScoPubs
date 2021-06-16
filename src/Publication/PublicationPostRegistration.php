@@ -47,7 +47,6 @@ class PublicationPostRegistration
 
         // Registers the meta box for the dashboard edit page
         add_action( 'add_meta_boxes_' . $this->post_type, [$this, 'register_meta_box']);
-
         // Modifying the JSON response for this post type to also contain the custom meta fields
         // https://wordpress.stackexchange.com/questions/227506/how-to-get-custom-post-meta-using-rest-api
         add_filter( 'rest_prepare_' . $this->post_type, [$this, 'filter_rest_json'], 10, 3);

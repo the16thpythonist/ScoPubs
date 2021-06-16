@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Options from './components/Options';
 import AuthorMeta from './components/AuthorMeta';
 import PublicationMeta from "./components/PublicationMeta";
+import LogMeta from "./components/LogMeta";
 
 Vue.config.productionTip = true;
 
@@ -19,7 +20,8 @@ Vue.config.productionTip = true;
 let components = {
   'scopubs-options-component': Options,
   'scopubs-author-meta-component': AuthorMeta,
-  'scopubs-publication-meta-component': PublicationMeta
+  'scopubs-publication-meta-component': PublicationMeta,
+  'scopubs-log-meta-component': LogMeta
 }
 
 function attachVue() {

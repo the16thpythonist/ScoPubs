@@ -13,8 +13,9 @@ import axios from 'axios';
 
 function Api() {
     this.url = WP["rest_url"];
-    this.authorEndpoint = "wp/v2/" + WP["author_post_type"] + "/"
-    this.publicationEndpoint = "wp/v2/" + WP["publication_post_type"] + "/"
+    this.authorEndpoint = "wp/v2/" + WP["author_post_type"] + "/";
+    this.publicationEndpoint = "wp/v2/" + WP["publication_post_type"] + "/";
+    this.logEndpoint = "wp/v2/" + WP["log_post_type"] + "/";
 
     this.nonce = WP["nonce"];
 }
@@ -137,6 +138,12 @@ Api.prototype.updatePublication = function(postID, publication) {
     ).catch(function (error) {
         console.log(error);
         return error;
+    });
+}
+
+Api.prototype.getLog = function(postID) {
+    return this.get(this.logEndpoint + postID).then(function (data) {
+        return data;
     });
 }
 

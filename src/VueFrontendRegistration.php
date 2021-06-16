@@ -4,6 +4,7 @@ namespace Scopubs;
 
 use Scopubs\Author\ObservedAuthorPost;
 use Scopubs\Publication\PublicationPost;
+use Scopubs\Log\LogPost;
 
 /**
  * Class VueFrontendRegistration
@@ -94,6 +95,7 @@ class VueFrontendRegistration {
             'nonce'                 => wp_create_nonce( 'wp_rest' ),
             'author_post_type'      => ObservedAuthorPost::$post_type,
             'publication_post_type' => PublicationPost::$post_type,
+            'log_post_type'         => LogPost::$post_type
         ]);
     }
 

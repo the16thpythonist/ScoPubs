@@ -18,6 +18,8 @@ use Scopubs\Author\ObservedAuthorPostRegistration;
 use Scopubs\Publication\PublicationPostRegistration;
 use Scopubs\Log\LogPostRegistration;
 
+use Scopubs\Log\LogPost;
+
 use Scopubs\VueFrontendRegistration;
 
 // == DEFINING CONSTANTS
@@ -49,3 +51,16 @@ function register_options_page() {
 }
 
 add_action('admin_menu', 'register_options_page');
+
+function mock_log() {
+    $l = LogPost::create('Test Log');
+    $l->start();
+    $l->info("Hello");
+    $l->info("World");
+    $l->error("I am having a seisure!");
+    $l->warning("JK, i am just a pathological lier");
+    $l->debug("*whispers* please help me...");
+    $l->close();
+}
+// add_action('init', 'mock_log');
+
