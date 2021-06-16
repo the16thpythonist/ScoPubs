@@ -109,8 +109,7 @@ class ObservedAuthorPostRegistration
                 // Features which the post type supports
                 'supports' => [
                     'title',
-                    // 'editor', // Actually I really dont need the editor at this point...
-                    'excerpt',
+                    // 'editor', // Actually I really dont need the editor at this point..
                     // https://stackoverflow.com/questions/56460557/how-to-include-meta-fields-in-wordpress-api-post
                     // Holy moly, they could be more transparent about this. I was searching for ages why I could not
                     // interact with my meta data even though the meta fields were registered as "show_in_rest=true"
@@ -212,7 +211,9 @@ class ObservedAuthorPostRegistration
     // -- Registering the meta box --
 
     /**
-     * This method registers the custo meta box for this post type.
+     * This method registers the custom meta box for this post type.
+     *
+     * @return void
      */
     public function register_meta_box() {
         add_meta_box(

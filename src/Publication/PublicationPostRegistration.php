@@ -45,6 +45,13 @@ class PublicationPostRegistration
         // Registers the "Observed Author" taxonomy for publications
         add_action( 'init', [$this, 'register_publication_observed_author_taxonomy'] );
 
+        // Registers the meta box for the dashboard edit page
+        add_action( 'add_meta_boxes_' . $this->post_type, [$this, 'register_meta_box']);
+
+        // Modifying the JSON response for this post type to also contain the custom meta fields
+        // https://wordpress.stackexchange.com/questions/227506/how-to-get-custom-post-meta-using-rest-api
+        add_filter( 'rest_prepare_' . $this->post_type, [$this, 'filter_rest_json'], 10, 3);
+
     }
 
     /**
@@ -83,8 +90,7 @@ class PublicationPostRegistration
                 'supports' => [
                     'title',
                     'editor',
-                    'excerpt',
-                    'custom_fields'
+                    'custom-fields'
                 ],
 
                 // Text labels
@@ -244,4 +250,51 @@ class PublicationPostRegistration
             register_post_meta( $this->post_type, $meta_field, $args );
         }
     }
+
+    // -- Registering the meta box --
+
+    public function register_meta_box() {
+        add_meta_box(
+            $this->post_type . '_meta',
+            'Publication Meta Information',
+            [$this, 'echo_meta_box'],
+            $this->post_type,
+            'normal',
+            'high'
+        );
+    }
+
+    public function echo_meta_box( \WP_Post $post ) {
+        ?>
+            <script>
+                // By using "var" here we are making this a globally accessible variable. It is important that the
+                // information about which post ID the current post has is passed to the frontend code this way.
+                var POST_ID = <?php echo $post->ID; ?>;
+            </script>
+            <div id="scopubs-publication-meta-component">
+                This Vue component apparently could not be loaded properly.
+            </div>
+        <?php
+    }
+
+    // -- Modify REST response --
+
+    public function filter_rest_json( object $data, \WP_Post $post, $context ) {
+        $publication_post = new PublicationPost($post->ID);
+
+        $data->data['title'] = $publication_post->title;
+        $data->data['abstract'] = $publication_post->abstract;
+        $data->data['scopus_id'] = $publication_post->scopus_id;
+        $data->data['kitopen_id'] = $publication_post->kitopen_id;
+        $data->data['doi'] = $publication_post->doi;
+        $data->data['eid'] = $publication_post->eid;
+        $data->data['issn'] = $publication_post->issn;
+        $data->data['journal'] = $publication_post->journal;
+        $data->data['volume'] = $publication_post->volume;
+        $data->data['author_count'] = $publication_post->author_count;
+        $data->data['authors'] = $publication_post->authors;
+
+        return $data;
+    }
+
 }

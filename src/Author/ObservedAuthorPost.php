@@ -212,6 +212,11 @@ class ObservedAuthorPost {
         ];
     }
 
+    /**
+     * Returns an array containing the WP_Term objects for all author topics assigned to this author.
+     *
+     * @return array
+     */
     public function get_author_topic_terms() {
         // https://developer.wordpress.org/reference/functions/wp_get_post_terms/
         return wp_get_post_terms( $this->post_id, self::$author_topic_taxonomy, ['fields' => 'all']);

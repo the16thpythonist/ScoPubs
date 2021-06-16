@@ -5,6 +5,7 @@ namespace Scopubs\Publication;
 
 use Scopubs\Validation\DataValidator;
 use Scopubs\Author\ObservedAuthorPost;
+use Scopubs\Util;
 
 /**
  * Class PublicationPost
@@ -157,7 +158,9 @@ class PublicationPost {
                 'schema' => [
                     'type'          => 'array',
                     'items'         => [
-                        'type'      => 'object'
+                        'type'      => 'object',
+                        // WOW. Apparently this is necessary even here...
+                        'additionalProperties' => true,
                     ]
                 ]
             ]
@@ -165,6 +168,8 @@ class PublicationPost {
     ];
 
     public const INSERT_VALUE_VALIDATORS = [
+        'title'                     => ['validate_is_string'],
+        'abstract'                  => ['validate_is_string'],
         'publish_date'              => ['validate_is_string'],
         'scopus_id'                 => ['validate_is_string'],
         'kitopen_id'                => ['validate_is_string'],
@@ -193,8 +198,8 @@ class PublicationPost {
         $this->issn = get_post_meta($this->post_id, 'issn', true);
         $this->journal = get_post_meta($this->post_id, 'journal', true);
         $this->volume = get_post_meta($this->post_id, 'volume', true);
-        $this->author_count = get_post_meta($this->post_id, 'author_count', true);
-        $this->authors = get_post_meta($this->authors, 'authors', true);
+        $this->author_count = (int) get_post_meta($this->post_id, 'author_count', true);
+        $this->authors = get_post_meta($this->post_id, 'authors', true);
 
         // Loading taxonomy terms
         $this->topics = array_map(function($term) { return $term->name; }, $this->get_topic_terms());
@@ -206,18 +211,46 @@ class PublicationPost {
 
     // -- Managing the taxonomy fields --
 
+    /**
+     * Returns an array of WP_Term objects where each term is one "Topic" set for this publication.
+     *
+     * @return array
+     */
     public function get_topic_terms() {
         return wp_get_post_terms( $this->post_id, self::$publication_topic_taxonomy, ['fields' => 'all'] );
     }
 
+    /**
+     * Returns an array of WP_Term objects, where each term represents one "Tag" set for this publication
+     *
+     * @return array
+     */
     public function get_tag_terms() {
         return wp_get_post_terms( $this->post_id, self::$publication_tag_taxonomy, ['fields' => 'all'] );
     }
 
+    /**
+     * Returns an arry of WP_Term object, where each term represents one "Observed Author" term set for this publication
+     *
+     * @return array
+     */
     public function get_observed_author_terms() {
         return wp_get_post_terms( $this->post_id, self::$publication_observed_author_taxonomy, ['fields' => 'all'] );
     }
 
+    /**
+     * Returns an array of ObservedAuthorPost instances, where each instance represents one observed author which is
+     * registered in the wordpress database and is listed as an author of this publication.
+     *
+     * The publication post type can be extended with terms of the "Observed Author" taxonomy. Each term of this
+     * taxonomy references one observed author post in the wordpress database. This is a method of linking the two post
+     * types together. Each Observed Author taxonomy term should contain the wordpress post id of the
+     * corresponding observed author post as the term description. This is how this method works: By retrieving all the
+     * observed author terms for this publication and using the post ids in their descriptions, the corresponding
+     * ObservedAuthorPost wrapper instances can be created and are loaded into the returned array list.
+     *
+     * @return array Array of all ObservedAuthorPost instances also listed as authors of this publication
+     */
     public function get_observed_authors() {
         // First we need to get the terms which represent the observed authors. These contain all the information we
         // need to actually load the observed author posts. Specifically the description is the int post id of the
@@ -233,6 +266,59 @@ class PublicationPost {
         return $observed_authors;
     }
 
+    /**
+     * Returns an array, which can be used as the arguments array for the static "update" method. The values of this
+     * array are the currently set values of the corresponding attributes of the instance.
+     *
+     * @return array The $args array for the "update" method
+     */
+    public function get_update_args() {
+        return [
+            'title'             => $this->title,
+            'abstract'          => $this->abstract,
+            'publish_date'      => $this->publish_date,
+            'scopus_id'         => $this->scopus_id,
+            'kitopen_id'        => $this->kitopen_id,
+            'doi'               => $this->doi,
+            'eid'               => $this->eid,
+            'issn'              => $this->issn,
+            'journal'           => $this->journal,
+            'volume'            => $this->volume,
+            'author_count'      => $this->author_count,
+            'authors'           => $this->authors
+        ];
+    }
+
+    /**
+     * This method saves the current values of this publication post instance to the database record of the
+     * corresponding wordpress post.
+     *
+     * This method saves the following attributes:
+     * - All the custom meta fields which are specific to this post type, like the scopus id, the authors etc.
+     * - The taxonomy terms for the topics, tags etc.
+     * - The "title" attribute as the post title and the "abstract" attribute as the post content.
+     *
+     * It does NOT save any other modified values of the internal "post" attribute!
+     *
+     * @returns void
+     */
+    public function save() {
+        $args = $this->get_update_args();
+        self::update($this->post_id, $args);
+
+        // Updating the "Topic" taxonomy terms
+        wp_set_post_terms($this->post_id, $this->topics, self::$publication_topic_taxonomy, false);
+        // Updating the "Tag" taxonomy terms
+        wp_set_post_terms($this->post_id, $this->tags, self::$publication_tag_taxonomy, false);
+        // Updating the "Observed Author" taxonomy terms
+        wp_set_post_terms(
+            $this->post_id,
+            array_map(function($a) { return 0; }, $this->observed_authors),
+            self::$publication_observed_author_taxonomy,
+            false
+        );
+    }
+
     // == STATIC METHODS
     // The static methods will be used to perform general operations for this custom post type. These general operations
     // affect the post type as a whole and are not bound to a specific instance. This includes things like inserting
@@ -240,6 +326,30 @@ class PublicationPost {
 
     // -- Inserting new posts
 
+    /**
+     * Inserts a new publication post into the database based on the provided $args.
+     *
+     * The assoc. $args array HAS TO contain the following keys:
+     *
+     * - title: The string title of the publication
+     * - abstract: The abstract / a short description of the publication
+     * - scopus_id: A string representation of the scopus ID by which this publication is uniquely identified in the
+     *   Scopus online publications database
+     * - kitopen_id: A string representation of the KITOpenID
+     * - eid: string ID
+     * - doi: string ID
+     * - issn: string ID
+     * - journal: The string name of the journal in which the publication was published
+     * - volume: string name of the volume of the journal.
+     * - author_count: The int amount of authors which are listed for this publication
+     * - authors: An array of associative arrays. Each assoc array element describes one of the authors of the
+     *   publication
+     *
+     * @param array $args
+     *
+     * @return int|\WP_Error
+     * @throws \Scopubs\Validation\ValidationError
+     */
     public static function insert(array $args) {
         $args = DataValidator::apply_array($args, self::INSERT_VALUE_VALIDATORS);
 
@@ -249,49 +359,51 @@ class PublicationPost {
         return $post_id;
     }
 
+    /**
+     * Updates the publication post with the given $post_id with the values within the $args array
+     *
+     * The assoc. $args array CAN contain the following keys:
+     *
+     * - title: The string title of the publication
+     * - abstract: The abstract / a short description of the publication
+     * - scopus_id: A string representation of the scopus ID by which this publication is uniquely identified in the
+     *   Scopus online publications database
+     * - kitopen_id: A string representation of the KITOpenID
+     * - eid: string ID
+     * - doi: string ID
+     * - issn: string ID
+     * - journal: The string name of the journal in which the publication was published
+     * - volume: string name of the volume of the journal.
+     * - author_count: The int amount of authors which are listed for this publication
+     * - authors: An array of associative arrays. Each assoc array element describes one of the authors of the
+     *   publication
+     *
+     * @param int $post_id
+     * @param array $args
+     *
+     * @return int|\WP_Error
+     * @throws \Scopubs\Validation\ValidationError
+     */
     public static function update(int $post_id, array $args) {
         $args = DataValidator::apply_array($args, self::INSERT_VALUE_VALIDATORS);
 
-        $postarr = [
-            'ID'            => $post_id,
-            'meta_input'    => []
-        ];
-        foreach ($args as $arg => $value) {
-            $postarr['meta_input'][$arg] = $value;
-        }
+        $postarr = Util::array_mapping($args, [
+            'title'                 => 'post_title',
+            'abstract'              => 'post_content',
+            'publish_date'          => 'meta_input/publish_data',
+            'scopus_id'             => 'meta_input/scopus_id',
+            'kitopen_id'            => 'meta_input/kitopen_id',
+            'doi'                   => 'meta_input/doi',
+            'eid'                   => 'meta_input/eid',
+            'issn'                  => 'meta_input/issn',
+            'journal'               => 'meta_input/journal',
+            'volume'                => 'meta_input/volume',
+            'author_count'          => 'meta_input/author_count',
+            'authors'               => 'meta_input/authors'
+        ]);
+        $postarr['ID'] = $post_id;
 
         return wp_update_post($postarr);
-    }
-
-    public static function conditional_array_mapping( array $source_array, array $mapping ) {
-        $result = [];
-        foreach ($mapping as $source_key => $target_query) {
-            // This where the conditional part comes in:
-            if (!array_key_exists($source_key, $source_array)) {
-                continue;
-            }
-
-            $target_keys = explode('/', $target_query);
-            // Creating array structure
-            $current_index = 0;
-            // https://www.php.net/manual/en/language.references.php
-            $current_array = &$result;
-            while ($current_index < count($target_keys) - 1) {
-                $current_key = $target_keys[$current_index];
-                if (!array_key_exists($current_key, $current_array) || !is_array($current_array[$current_key])) {
-                    $current_array[$current_key] = [];
-                }
-                $current_array = &$current_array[$current_key];
-                $current_index += 1;
-            }
-
-            // Actually setting the value on the lowest level
-            $last_key = $target_keys[$current_index];
-            $current_array[$last_key] = $source_array[$source_key];
-            var_dump($current_array);
-        }
-
-        return $result;
     }
 
     /**

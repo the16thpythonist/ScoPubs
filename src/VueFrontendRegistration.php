@@ -3,6 +3,7 @@
 namespace Scopubs;
 
 use Scopubs\Author\ObservedAuthorPost;
+use Scopubs\Publication\PublicationPost;
 
 /**
  * Class VueFrontendRegistration
@@ -91,7 +92,8 @@ class VueFrontendRegistration {
             'rest_url'              => esc_url_raw( get_rest_url() ),
             'admin_url'             => esc_url_raw( get_admin_url() ),
             'nonce'                 => wp_create_nonce( 'wp_rest' ),
-            'author_post_type'      => ObservedAuthorPost::$post_type
+            'author_post_type'      => ObservedAuthorPost::$post_type,
+            'publication_post_type' => PublicationPost::$post_type,
         ]);
     }
 

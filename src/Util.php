@@ -4,6 +4,9 @@
 namespace Scopubs;
 
 
+use http\Exception\InvalidArgumentException;
+use Scopubs\Validation\ValidationError;
+
 /**
  * This is a static class which simply acts as a container for all the misc. utility functions.
  */
@@ -92,6 +95,24 @@ class Util {
         }
 
         return $result;
+    }
+
+    /**
+     * This function makes sure that the given associative $source_array contains all the keys which are specified as
+     * a list $keys of strings. If the $source_array does indeed have all the correct keys, nothing happens. If even
+     * one key is missing, this function throws a InvalidArgumentException
+     *
+     * @param array $source_array The associative array whose keys to check
+     * @param array $keys A list of strings, which are all supposed to be keys of the source array.
+     */
+    public static function require_array_keys( array $source_array, array $keys ) {
+        foreach ($keys as $key) {
+            if (!array_key_exists( $key, $source_array )) {
+                throw new \InvalidArgumentException(
+                    "The provided array does not contain the required key ${key}!"
+                );
+            }
+        }
     }
 
 }

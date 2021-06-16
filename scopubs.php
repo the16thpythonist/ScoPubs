@@ -16,6 +16,8 @@ require_once 'vendor/autoload.php';
 
 use Scopubs\Author\ObservedAuthorPostRegistration;
 use Scopubs\Publication\PublicationPostRegistration;
+use Scopubs\Log\LogPostRegistration;
+
 use Scopubs\VueFrontendRegistration;
 
 // == DEFINING CONSTANTS
@@ -27,6 +29,9 @@ $observed_author_registration->register();
 
 $publication_registration = new PublicationPostRegistration();
 $publication_registration->register();
+
+$log_registration = new LogPostRegistration();
+$log_registration->register();
 
 $frontend_registration = new VueFrontendRegistration();
 $frontend_registration->register();

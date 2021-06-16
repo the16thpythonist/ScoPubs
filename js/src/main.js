@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import Options from './components/Options';
 import AuthorMeta from './components/AuthorMeta';
+import PublicationMeta from "./components/PublicationMeta";
 
 Vue.config.productionTip = true;
 
@@ -17,7 +18,8 @@ Vue.config.productionTip = true;
 // such an ID exists and if it does we mount the corresponding Vue component. Otherwise nothing will happen.
 let components = {
   'scopubs-options-component': Options,
-  'scopubs-author-meta-component': AuthorMeta
+  'scopubs-author-meta-component': AuthorMeta,
+  'scopubs-publication-meta-component': PublicationMeta
 }
 
 function attachVue() {
@@ -28,8 +30,6 @@ function attachVue() {
   // to be mounted because this code was executed before the element with the corresponding ID even existed in the DOM!
   for (let [id, component] of Object.entries(components)) {
     let element = document.getElementById(id);
-    console.log(id);
-    console.log(element)
     if (element) {
       // If the element exists, we can use it to mount the corresponding Vue component dynamically.
       new Vue({

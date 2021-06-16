@@ -132,6 +132,22 @@ class DataValidator {
         }
     }
 
+    public static function validate_is_int(string $key, $value) {
+        if (is_int($value)) {
+            return $value;
+        } else {
+            throw new ValidationError( $key, 'supposed to be int!' );
+        }
+    }
+
+    public static function validate_is_boolean(string $key, $value) {
+        if (is_bool($value)) {
+            return $value;
+        } else {
+            throw new ValidationError( $key, 'supposed to be bool!' );
+        }
+    }
+
     public static function validate_not_empty(string $key, $value) {
         if (count($value) != 0) {
             return $value;

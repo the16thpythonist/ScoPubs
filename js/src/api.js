@@ -14,6 +14,7 @@ import axios from 'axios';
 function Api() {
     this.url = WP["rest_url"];
     this.authorEndpoint = "wp/v2/" + WP["author_post_type"] + "/"
+    this.publicationEndpoint = "wp/v2/" + WP["publication_post_type"] + "/"
 
     this.nonce = WP["nonce"];
 }
@@ -84,6 +85,59 @@ Api.prototype.postObservedAuthor = function(author) {
             'affiliations_blacklist':   author['affiliation_blacklist']
         }
     })
+}
+
+Api.prototype.getPublication = function(postID) {
+    return this.get(this.publicationEndpoint + postID).then(function (data) {
+        return data;
+    })
+}
+
+Api.prototype.postPublication = function(publication) {
+    return this.post(this.publicationEndpoint, {
+        'type':                     WP['publication_post_type'],
+        'status':                   'publish',
+        'title':                    publication['title'],
+        'content':                  publication['abstract'],
+        'meta': {
+            'scopus_id':            publication['scopus_id'],
+            'kitopen_id':           publication['kitopen_id'],
+            'doi':                  publication['doi'],
+            'eid':                  publication['eid'],
+            'issn':                 publication['issn'],
+            'journal':              publication['journal'],
+            'volume':               publication['volume'],
+            'author_count':         publication['author_count'],
+            'authors':              publication['authors']
+        }
+    })
+}
+
+Api.prototype.updatePublication = function(postID, publication) {
+    let data = {
+        'id': postID,
+        'type': WP['publication_post_type'],
+        'status': 'publish',
+        'title': publication['title'],
+        'content': publication['abstract'],
+        'meta': {
+            'scopus_id': publication['scopus_id'],
+            'kitopen_id': publication['kitopen_id'],
+            'doi': publication['doi'],
+            'eid': publication['eid'],
+            'issn': publication['issn'],
+            'journal': publication['journal'],
+            'volume': publication['volume'],
+            'author_count': publication['author_count'],
+            'authors': publication['authors']
+        }
+    };
+    console.log(data);
+    return this.post(this.publicationEndpoint + postID, data
+    ).catch(function (error) {
+        console.log(error);
+        return error;
+    });
 }
 
 
