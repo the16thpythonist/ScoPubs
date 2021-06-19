@@ -60,6 +60,18 @@ use Countable;
  *      $log_post->error('The most important log level');
  *      $log_post->close();
  *
+ * **REGISTRATION IN WORDPRESS**
+ *
+ * To use the log post type, it first needs to be registered with wordpress. All the registration related functionality
+ * is wrapped in a separate class LogPostRegistration. To register the log post simply create a new instance of this
+ * registration class and call the "register" method. This will take care of calling all the necessary wordpress
+ * functions and hooking into the appropriate actions and filters.
+ *
+ *      $log_post_registration = new LogPostRegistration();
+ *      $log_post_registration->register();
+ *
+ * This code has to be executed top level in the main file of the plugin!
+ *
  * @package Scopubs\Log
  */
 class LogPost implements Countable{
@@ -259,15 +271,6 @@ class LogPost implements Countable{
         $this->log(self::$log_levels['debug'], $message);
     }
 
-    /**
-     * This method returns a list with all the possible log levels supported by the class.
-     *
-     * @return string[]
-     */
-    public function get_log_levels() {
-        return array_values(self::$log_levels);
-    }
-
     // -- implements "Countable"
 
     /**
@@ -387,5 +390,15 @@ class LogPost implements Countable{
         $postarr['post_type'] = self::$post_type;
 
         return $postarr;
+    }
+
+    /**
+     * This method returns a list with all the possible log levels supported by the class. The result will be an array
+     * of strings, where each item is a unique human-readable string identifier for one of the log levels.
+     *
+     * @return string[]
+     */
+    public static function get_log_levels() {
+        return array_values(self::$log_levels);
     }
 }
