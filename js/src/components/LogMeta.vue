@@ -1,7 +1,7 @@
 <template>
     <div class="log-meta">
         <div class="control-header">
-            <CompactToggleInput
+            <CompactMultiToggleInput
                     v-model="enabledLevels"
                     :trueStyle="{backgroundColor: 'rgba(255, 255, 255, 0.2)'}"
                     :falseStyle="{backgroundColor: 'rgba(255, 255, 255, 0.0)'}"/>
@@ -26,11 +26,11 @@
 
 <script>
     import api from '../api.js';
-    import CompactToggleInput from "./input/CompactToggleInput";
+    import CompactMultiToggleInput from "./input/CompactMultiToggleInput";
 
     export default {
         name: "LogMeta",
-        components: {CompactToggleInput},
+        components: {CompactMultiToggleInput},
         data: function() {
             return {
                 api: new api.Api(),

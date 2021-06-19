@@ -16,6 +16,7 @@ class LogPostTest extends WP_UnitTestCase {
     public function test_create_postarr_basically_works() {
         $args = [
             'title'         => 'My first Log',
+            'type'          => 'test',
             'running'       => false,
             'entries'       => []
         ];
@@ -25,6 +26,7 @@ class LogPostTest extends WP_UnitTestCase {
             'post_status'   => 'publish',
             'post_type'     => LogPost::$post_type,
             'meta_input'    => [
+                'type'      => 'test',
                 'running'   => false,
                 'entries'   => []
             ]
@@ -62,6 +64,7 @@ class LogPostTest extends WP_UnitTestCase {
         // properly into a wrapper object
         $args = [
             'title'         => 'My first Log',
+            'type'          => 'test',
             'running'       => false,
             'entries'       => []
         ];
@@ -79,6 +82,7 @@ class LogPostTest extends WP_UnitTestCase {
         // Creating the base post
         $args = [
             'title'         => 'My first Log',
+            'type'          => 'test',
             'running'       => false,
             'entries'       => []
         ];
@@ -112,6 +116,7 @@ class LogPostTest extends WP_UnitTestCase {
         // The "save" method on an object should be able to save the current instance values to the database
         $args = [
             'title'         => 'My first Log',
+            'type'          => 'test',
             'running'       => false,
             'entries'       => []
         ];
@@ -155,5 +160,20 @@ class LogPostTest extends WP_UnitTestCase {
         $this->assertEquals(3, count($log_post->entries));
         $this->assertIsArray($log_post->entries[0]);
         $this->assertEquals('Hello', $log_post->entries[0]['message']);
+    }
+
+    public function test_countable_interface_implementation() {
+        // LogPost implements the Countable interface, which means that it should be possible to call the "count"
+        // function directly on the instance itself
+        $log_post = LogPost::create('New Log');
+        $post_id = $log_post->post_id;
+
+        $log_post->start();
+        $log_post->info('Hello');
+        $log_post->info('World');
+        $log_post->error('!!!');
+        $log_post->close();
+
+        $this->assertEquals(3, count($log_post));
     }
 }

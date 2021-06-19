@@ -16,6 +16,7 @@ function Api() {
     this.authorEndpoint = "wp/v2/" + WP["author_post_type"] + "/";
     this.publicationEndpoint = "wp/v2/" + WP["publication_post_type"] + "/";
     this.logEndpoint = "wp/v2/" + WP["log_post_type"] + "/";
+    this.commandEndpoint = "wp/v2/" + WP["command_base"] + "/";
 
     this.nonce = WP["nonce"];
 }
@@ -145,6 +146,24 @@ Api.prototype.getLog = function(postID) {
     return this.get(this.logEndpoint + postID).then(function (data) {
         return data;
     });
+}
+
+Api.prototype.getAvailableCommands = function() {
+    return this.get(this.commandEndpoint).then(function (data) {
+       return JSON.parse(data);
+    });
+}
+
+Api.prototype.executeCommand = function(name, args) {
+    return this.post(this.commandEndpoint + name, {
+        'args': args
+    });
+}
+
+Api.prototype.getRecentCommands = function(name, args) {
+    return this.get(this.commandEndpoint + 'recent').then(function (data) {
+        return JSON.parse(data);
+    })
 }
 
 

@@ -20,10 +20,21 @@ use Scopubs\Log\LogPostRegistration;
 
 use Scopubs\Log\LogPost;
 
+use Scopubs\Command\CommandManager;
+use Scopubs\Command\HelloWorldCommand;
+
 use Scopubs\VueFrontendRegistration;
 
 // == DEFINING CONSTANTS
 define('SCOPUBS_URL_BASE', plugin_dir_url(__FILE__));
+
+// == REGISTERING
+
+CommandManager::register();
+HelloWorldCommand::register();
+
+$frontend_registration = new VueFrontendRegistration();
+$frontend_registration->register();
 
 // == REGISTERING CUSTOM POST TYPES
 $observed_author_registration = new ObservedAuthorPostRegistration();
@@ -34,9 +45,6 @@ $publication_registration->register();
 
 $log_registration = new LogPostRegistration();
 $log_registration->register();
-
-$frontend_registration = new VueFrontendRegistration();
-$frontend_registration->register();
 
 function options_page() {
     ?>
