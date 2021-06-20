@@ -93,6 +93,19 @@ class CommandManager {
     }
 
     /**
+     * This method is used to manually unregister an already registered command from the manager.
+     *
+     * @param string $name The unique string identifier for the command
+     *
+     * @return void
+     */
+    public static function remove_command(string $name) {
+        if (array_key_exists($name, self::$commands)) {
+            unset(self::$commands[$name]);
+        }
+    }
+
+    /**
      * This method executes the command which is registered by the string identifier $name, by passing the $args array
      * as the command parameters.
      *

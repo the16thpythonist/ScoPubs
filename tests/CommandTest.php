@@ -39,6 +39,10 @@ class CommandTest extends WP_UnitTestCase{
     }
 
     public function test_register_hello_world_command_and_invoke_through_manager() {
+
+        // Before adding the command we need to make sure that it is not already registered (a name collision would cause
+        // an error)
+        CommandManager::remove_command('hello_world');
         CommandManager::add_command('hello_world', HelloWorldCommand::class);
         $success = CommandManager::execute_command('hello_world', ['postfix' => '']);
         $this->assertTrue($success);

@@ -9,10 +9,26 @@ use Scopus\Response\Abstracts;
 use Scopus\Response\AbstractAuthor;
 
 
+/**
+ * Class ScopusPublicationFetcher
+ *
+ * **DESIGN CHOICE**
+ *
+ * Usually I would argue about separation of concerns in the sense that a publication "fetcher" should only be
+ * concerned about, well, fetching publications. The best thing would be to keep the input output system as simple as
+ * possible. A list of publication ids goes in, the fetcher makes the api requests and returns the results. It should
+ * not have to worry about whether or not a publication meets all the requirements, caching meta properties etc.
+ * But from experience I know that this process is extremely slow and every single publication that does not actually
+ * have to be fetched makes the difference. In this case, the performance considerations are actually more important
+ * than the simplicity... This is why the meta cache exists, why the fetcher has a parameter that allows the
+ * exclusion of already posted publications and so on.
+ *
+ * @package Scopubs\Scopus
+ */
 class ScopusPublicationFetcher extends AbstractPublicationFetcher{
 
     public static $parameters = [
-        'exclude_list' => [
+        'exclude_ids' => [
             'type'              => 'string',
             'default'           => [],
             'validators'        => ['validate_is_array']
@@ -25,6 +41,8 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
     ];
 
     public $scopus_api;
+    public $meta_cache;
+    public $current_publication;
 
     public $scopus_authors = [];
     public $scopus_ids = [];
@@ -33,7 +51,9 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
         parent::__construct($log, $args);
 
         // Creating a new ScopusApi instance
-        $this->scopus_api = new ScopusApi;
+        $this->scopus_api = new ScopusApi();
+        // Creating a new instance of the meta cache
+        $this->meta_cache = new ScopusMetaCache();
     }
 
     public function next() {
@@ -48,11 +68,60 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
         // 4. Only if these seconds checks also come back positive, we plug the scopus representation into the
         //    appropriate adapter to derive the appropriate PublicationPost $args insert array from it.
 
-        $this->fetch_authors();
+        $this->fetch_scopus_ids();
 
+        $this->exclude_scopus_ids();
+
+        foreach($this->scopus_ids as $scopus_id) {
+            $do_fetch = $this->check_publication($scopus_id);
+            if ($do_fetch) {
+                try {
+                    $this->fetch_publication($scopus_id);
+                    $this->log->debug(var_export($this->current_publication, True));
+                } catch (\Error $e) {
+                    $this->log->warning(sprintf(
+                        'The publication with the scopus id %s could not be fetched because of error: %s',
+                        $scopus_id,
+                        $e->getMessage()
+                    ));
+                    continue;
+                }
+            } else {
+                continue;
+            }
+
+            // Now we update the meta cache with this publication and since the publication is then in the cache we
+            // can simple recycle the existing functionality of "check_publication" (which checks based on the cache)
+            // to again determine if we really want to insert this publication
+            $this->meta_cache->update($scopus_id, $this->current_publication);
+            $is_valid = $this->check_publication($scopus_id);
+            if ($is_valid) {
+                $args_builder = new ScopusInsertArgsBuilder();
+                $args = $args_builder->build();
+                yield $args;
+            }
+        }
     }
 
-    public function fetch_authors() {
+    public function check_publication(string $scopus_id): bool {
+        $value = False;
+        if ($this->meta_cache->contains($scopus_id)) {
+            // Checking for blacklist
+
+            // Checking for age
+        }
+    }
+
+    public function exclude_scopus_ids() {
+        $exclude_ids = $this->args['exclude_ids'];
+        $this->scopus_ids = array_unique(array_diff($this->scopus_ids, $exclude_ids));
+        $this->log->info(sprintf(
+            'After applying the exclude list to the scopus ids, %s publications will ultimately be fetched.',
+            count($this->scopus_ids)
+        ));
+    }
+
+    public function fetch_scopus_ids() {
 
         foreach ($this->observed_authors as $author_post) {
             $this->log->info(sprintf(
@@ -63,9 +132,8 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
             ));
 
             foreach($author_post->scopus_author_ids as $author_id) {
-                $author = $this->scopus_api->retrieveAuthor($author_id);
-                array_push($this->scopus_authors, $author);
-
+                $scopus_ids = $this->fetch_scopus_ids_for_author($author_id);
+                $this->scopus_ids += $scopus_ids;
             }
         }
     }
@@ -131,7 +199,9 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
     }
 
     /**
-     * This method creates the
+     * This method creates a scopus search query object based on a search string. This search query can be used to
+     * search for publications within the scopus database which all suffice some criteria defined by the search
+     * string.
      *
      * @param string $search_string
      *
@@ -139,10 +209,15 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
      * @throws \ReflectionException ?
      */
     public function query_scopus(string $search_string) {
-        // What we need to do here is a very unfortunate hack.
+        // What we need to do here is a very unfortunate hack. Sadly, the "query" method of the scopus ID which we
+        // intend to do here is a protected method. This means we wouldn't normally be able to access it, but there is
+        // a workaround as seen here. By creating a reflection class instance we are able to change the accessiblity
+        // status for this method and then invoke it nonetheless
         $class = new \ReflectionClass($this->scopus_api);
         $query_method = $class->getMethod('query');
         $query_method->setAccessible(True);
+        // Note that this query object does not yet actually perform a network request. The query object itself still
+        // has to be invoked the "search" method which then actually sends the request.
         $query = $query_method->invoke($this->scopus_api, [$search_string]);
         return $query;
     }
