@@ -25,18 +25,25 @@ use Scopubs\Command\HelloWorldCommand;
 
 use Scopubs\VueFrontendRegistration;
 
+use Scopubs\Options;
+
 // == DEFINING CONSTANTS
+define('PLUGIN_PREFIX', 'scopubs');
 define('SCOPUBS_URL_BASE', plugin_dir_url(__FILE__));
 
 // == REGISTERING
 
 CommandManager::register();
+Options::register();
+
 HelloWorldCommand::register();
 
 $frontend_registration = new VueFrontendRegistration();
 $frontend_registration->register();
 
+
 // == REGISTERING CUSTOM POST TYPES
+
 $observed_author_registration = new ObservedAuthorPostRegistration();
 $observed_author_registration->register();
 
@@ -46,18 +53,5 @@ $publication_registration->register();
 $log_registration = new LogPostRegistration();
 $log_registration->register();
 
-function options_page() {
-    ?>
-    <div id="scopubs-options-component">
-        Seems like Vue component could not be loaded...
-    </div>
-    <?php
-}
-
-function register_options_page() {
-    add_options_page('Scopubs Plugin Settings', 'Scopubs Settings', 'manage_options', 'scopubs_plugin', 'options_page');
-}
-
-add_action('admin_menu', 'register_options_page');
 
 

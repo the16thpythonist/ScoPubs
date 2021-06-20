@@ -90,7 +90,8 @@ class VueFrontendRegistration {
         // just become available in all JS!
         // We need this to pass important information to the frontend application, most importantly the base URL for
         // all rest urls, we wouldnt want to hard code this...
-        wp_localize_script($this->script_handle, 'WP', [
+
+        $frontend_data = apply_filters(PLUGIN_PREFIX . '_frontend_data', [
             'rest_url'              => esc_url_raw( get_rest_url() ),
             'admin_url'             => esc_url_raw( get_admin_url() ),
             'nonce'                 => wp_create_nonce( 'wp_rest' ),
@@ -99,6 +100,7 @@ class VueFrontendRegistration {
             'log_post_type'         => LogPost::$post_type,
             'command_base'          => CommandManager::$rest_base
         ]);
+        wp_localize_script($this->script_handle, 'WP', $frontend_data);
     }
 
     // -- Actually enqueueing scripts and stylesheets

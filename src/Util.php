@@ -115,4 +115,15 @@ class Util {
         }
     }
 
+    // -- Permission callback helpers
+
+    /**
+     * Returns the boolean value of whether or not the current user is an administrator for the wordpress installation.
+     *
+     * @return bool
+     */
+    public static function current_user_admin() {
+        return current_user_can('administrator');
+    }
+
 }

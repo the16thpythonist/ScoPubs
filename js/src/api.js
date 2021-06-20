@@ -18,6 +18,9 @@ function Api() {
     this.logEndpoint = "wp/v2/" + WP["log_post_type"] + "/";
     this.commandEndpoint = "wp/v2/" + WP["command_base"] + "/";
 
+    console.log(WP);
+    this.optionsEndpoint = WP["options_endpoint"]
+
     this.nonce = WP["nonce"];
 }
 
@@ -164,6 +167,13 @@ Api.prototype.getRecentCommands = function(name, args) {
     return this.get(this.commandEndpoint + 'recent').then(function (data) {
         return JSON.parse(data);
     })
+}
+
+Api.prototype.getOptions = function() {
+    return this.get(this.optionsEndpoint).then(function (data) {
+        console.log(data);
+        return data;
+    });
 }
 
 
