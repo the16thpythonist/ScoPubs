@@ -1,5 +1,6 @@
 <template>
     <div class="command-widget">
+
         <div class="command-selection">
             <div>
                 <em>Select</em> a command, <em>Enter parameters</em> and <em>execute</em> it in the background
@@ -39,7 +40,7 @@
 
         <div class="command-execution">
             <button
-                    class="execute"
+                    class="execute button button-primary"
                     @click.prevent="onExecute">
                 Execute Command!
             </button>
@@ -58,6 +59,21 @@
 </template>
 
 <script>
+    /**
+     * **THE BASIC IDEA**
+     *
+     * The command widget is used to interact with the command system. The command system is used to trigger long
+     * running background processes on the server. These commands can take user parameters. This widget can be used
+     * to select one of the available commands, enter custom parameters and then trigger the execution of the command.
+     *
+     * The command system is exposed via a REST interface, so this component will initially fetch the info about the
+     * available commands from the REST interface of the server and then let the user choose one with a drop down
+     * select element. Based on the chosen command, the details section of the widget will be dynamically created. The
+     * detail section will display the description of the command and a series of input widgets, one for each parameter
+     * expected by the command. Then there is a "execute" button. By pressing this button the selected command name and
+     * the entered parameters are sent to the server as a REST POST request thereby triggering the actual execution
+     * of the command.
+     */
     import api from "../api.js";
     import Options from "./Options";
 
@@ -67,31 +83,74 @@
         data: function() {
             return {
                 api: new api.Api(),
-                commands: [],
+                // "commands" will be an array, which contains objects for all the available commands. These objects
+                // will describe their corresponding commands by containing fields about the name, description and a
+                // specification of expected parameters.
+                commands: {},
+                // This array will contain a list of object, where each object provides the information about a
+                // recently executed command.
                 recentCommands: [],
+                // This is bound to be the unique string identifier of the currently selected command of the user. It
+                // will then be used to retrieve the information about the command from the "commands" object. This
+                // information is then used to dynamically display the parameter inputs for example.
                 selectedCommand: null,
+                // Based on the selected Command, this object will contain a key value pair for each parameter which
+                // that command expects. The values are mapped to the dynamically created input fields
                 parameters: {}
             }
         },
         methods: {
+            /**
+             * The callback method for clicking the "execute" button. This will send a REST request to trigger the
+             * execution of the currently selected result using all the current values of the parameter inputs as the
+             * command parameters.
+             *
+             * @return void
+             */
             onExecute: function() {
                 this.api.executeCommand(this.selectedCommand, this.parameters);
+
+                // After some time we request the recent commands again, so that the recent commands log updated with
+                // the command which we have just executed. The user can then use the link of this entry to visit the
+                // log file of the command which he just triggered.
+                setTimeout(this.requestRecentCommands, 700);
+            },
+            /**
+             * This function will send a request to the REST api to retrieve the list of recently executed commands and
+             * then upon receiving the response, updated this.recentCommands accordingly.
+             *
+             * @return void
+             */
+            requestRecentCommands: function () {
+                let self = this;
+                this.api.getRecentCommands()
+                .then(function(recentCommands) {
+                    self.recentCommands = recentCommands;
+                })
+            },
+            /**
+             * This function will send a request to the REST api to retrieve the list of all available commands and
+             * upon receiving the result sets it to this.commands.
+             *
+             * @return void
+             */
+            requestAvailableCommands: function () {
+                let self = this;
+                this.api.getAvailableCommands()
+                .then(function(commands) {
+                    self.commands = commands;
+                })
             }
         },
+        /**
+         * This function gets called as soon as the component was created. We use this to make the initial queries to
+         * to the REST Api to retrieve (a) the list of all available commands which we need for the selection widget
+         * and (b) the information about the recently executed commands to display in the little log widget at the
+         * bottom.
+         */
         created: function() {
-            let self = this;
-
-            this.api.getAvailableCommands()
-            .then(function(commands) {
-                self.commands = commands;
-                console.log(commands);
-            })
-
-            this.api.getRecentCommands()
-            .then(function(recentCommands) {
-                self.recentCommands = recentCommands;
-                console.log(recentCommands);
-            })
+            this.requestAvailableCommands();
+            this.requestRecentCommands();
         },
         watch: {
             selectedCommand: function(value) {
@@ -170,6 +229,16 @@
         font-size: 0.9em;
         font-family: monospace;
         color: $dark_gray;
+    }
+
+    .command-execution {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    button.execute {
+        font-size: 1.0em;
     }
 
 </style>
