@@ -222,6 +222,24 @@ class ObservedAuthorPost {
         return wp_get_post_terms( $this->post_id, self::$author_topic_taxonomy, ['fields' => 'all']);
     }
 
+    /**
+     * Returns the string full name for the author.
+     *
+     * @return string
+     */
+    public function get_full_name(): string {
+        return sprintf('%s %s', $this->first_name, $this->last_name);
+    }
+
+    /**
+     * Returns the indexed name for the author.
+     *
+     * @return string
+     */
+    public function get_indexed_name(): string {
+        return sprintf('%s, %s.', $this->last_name, strtoupper($this->first_name[0]));
+    }
+
     // == STATIC METHODS
     // The static methods will be used to perform general operations for this custom post type. These general operations
     // affect the post type as a whole and are not bound to a specific instance. This includes things like inserting
@@ -300,6 +318,25 @@ class ObservedAuthorPost {
         }
 
         return wp_update_post($postarr);
+    }
+
+    // TODO: This could be a function for an abstract base class "AbstractPost" for example
+    /**
+     * Returns a list of ObservedAuthorPost instances, one wrapper instance for every author post in the database.
+     *
+     * @return array
+     */
+    public static function all() {
+        $query = new \WP_Query([
+            'post_type'         => static::$post_type,
+            'post_status'       => 'publish'
+        ]);
+        $wrappers = [];
+        foreach ($query->get_posts() as $post) {
+            $wrapper = new static($post->ID);
+            array_push($wrappers, $wrapper);
+        }
+        return $wrappers;
     }
 
     /**
