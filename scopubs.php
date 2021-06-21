@@ -29,6 +29,7 @@ use Scopubs\Options;
 
 // == DEFINING CONSTANTS
 define('PLUGIN_PREFIX', 'scopubs');
+define('PLUGIN_NAME', 'Scopus');
 define('SCOPUBS_URL_BASE', plugin_dir_url(__FILE__));
 
 // == REGISTERING

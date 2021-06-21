@@ -176,6 +176,15 @@ Api.prototype.getOptions = function() {
     });
 }
 
+Api.prototype.updateOptions = function(options) {
+    return this.post(this.optionsEndpoint, {
+       'options': options
+    })
+    .catch(function(err) {
+        console.log(err);
+    });
+}
+
 
 export default {
     Api: Api
