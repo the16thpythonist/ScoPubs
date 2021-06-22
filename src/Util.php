@@ -3,8 +3,10 @@
 
 namespace Scopubs;
 
+use DateTime;
 
 use http\Exception\InvalidArgumentException;
+
 use Scopubs\Validation\ValidationError;
 
 /**
@@ -126,4 +128,9 @@ class Util {
         return current_user_can('administrator');
     }
 
+    // -- Datetime utilities
+
+    public static function compare_date_strings() {
+
+    }
 }

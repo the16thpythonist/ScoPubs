@@ -3,10 +3,15 @@
 
 namespace Scopubs\Scopus;
 
+use DateTime;
+
+use Scopubs\Author\ObservedAuthorPost;
 use Scopubs\Publication\AbstractPublicationFetcher;
 use Scopus\ScopusApi;
 use Scopus\Response\Abstracts;
 use Scopus\Response\AbstractAuthor;
+
+use Scopubs\Options;
 
 
 /**
@@ -37,12 +42,22 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
             'type'              => 'int',
             'default'           => 100,
             'validators'        => ['validate_is_int']
+        ],
+        'more_recent_than' => [
+            'type'              => 'string',
+            'default'           => '2010-01-01',
+            'validators'        => ['validate_is_string']
         ]
     ];
 
     public $scopus_api;
     public $meta_cache;
+    public $id_author_map;
+
+    // -- Current state of generator
+    public $current_id;
     public $current_publication;
+    public $current_adapter;
 
     public $scopus_authors = [];
     public $scopus_ids = [];
@@ -50,10 +65,21 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
     public function __construct($log, $args) {
         parent::__construct($log, $args);
 
+        foreach ($this->observed_authors as $author_post) {
+            foreach ($author_post->scopus_author_ids as $author_id) {
+                $this->id_author_map[$author_id] = $author_post;
+            }
+        }
+
         // Creating a new ScopusApi instance
-        $this->scopus_api = new ScopusApi();
+        $this->scopus_api = new ScopusApi(Options::get('scopus_api_key'));
         // Creating a new instance of the meta cache
         $this->meta_cache = new ScopusMetaCache();
+
+        $this->log->info(sprintf(
+           'Fetching publications for %s observed authors',
+            count($this->observed_authors)
+        ));
     }
 
     public function next() {
@@ -73,11 +99,13 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
         $this->exclude_scopus_ids();
 
         foreach($this->scopus_ids as $scopus_id) {
-            $do_fetch = $this->check_publication($scopus_id);
-            if ($do_fetch) {
+            $this->current_id = $scopus_id;
+
+            $in_cache = $this->meta_cache->contains($scopus_id);
+            $is_valid = $this->check_publication($scopus_id);
+            if (!$in_cache || $is_valid) {
                 try {
                     $this->fetch_publication($scopus_id);
-                    $this->log->debug(var_export($this->current_publication, True));
                 } catch (\Error $e) {
                     $this->log->warning(sprintf(
                         'The publication with the scopus id %s could not be fetched because of error: %s',
@@ -86,30 +114,90 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
                     ));
                     continue;
                 }
-            } else {
-                continue;
             }
 
+            $this->current_adapter = new ScopusPublicationAdapter(
+                $this->current_publication,
+                $this->observed_authors
+            );
             // Now we update the meta cache with this publication and since the publication is then in the cache we
             // can simple recycle the existing functionality of "check_publication" (which checks based on the cache)
             // to again determine if we really want to insert this publication
-            $this->meta_cache->update($scopus_id, $this->current_publication);
+            $this->update_cache();
             $is_valid = $this->check_publication($scopus_id);
             if ($is_valid) {
-                $args_builder = new ScopusInsertArgsBuilder();
-                $args = $args_builder->build();
-                yield $args;
+                yield $this->current_adapter->to_args();
             }
         }
     }
 
-    public function check_publication(string $scopus_id): bool {
-        $value = False;
+    public function update_cache() {
+        $cache_args = [
+            'publish_date'              => $this->current_adapter->get_publish_date(),
+            'author_affiliations'       => $this->current_adapter->get_author_affiliations(),
+            'observed_author_post_ids'  => $this->current_adapter->get_observed_author_post_ids()
+        ];
+        $this->meta_cache->update($this->current_id, $cache_args);
+
+        $this->log->debug(sprintf(
+            'Updating meta cache for publication %s',
+            $this->current_id
+        ));
+    }
+
+    public function fetch_publication($scopus_id) {
+        $this->current_publication = $this->scopus_api->retrieveAbstract($scopus_id);
+    }
+
+    public function check_publication($scopus_id): bool {
         if ($this->meta_cache->contains($scopus_id)) {
             // Checking for blacklist
+            $is_blacklisted = $this->check_publication_blacklisted($scopus_id);
+            if ($is_blacklisted) { return $is_blacklisted; }
 
             // Checking for age
+            $too_old = $this->check_publication_too_old($scopus_id);
+            if ($too_old) { return $too_old; }
         }
+
+        return True;
+    }
+
+    public function check_publication_blacklisted($scopus_id) {
+        $apply_blacklist = $this->args['apply_blacklist'];
+        $is_blacklisted = False;
+
+        $author_posts = [];
+        foreach ($this->meta_cache[$scopus_id]['observed_author_post_ids'] as $post_id) {
+            $author_posts[] = new ObservedAuthorPost($post_id);
+        }
+
+        foreach ($this->meta_cache[$scopus_id]['author_affiliation'] as $author_id => $affiliation_id) {
+            foreach ($author_posts as $author_post) {
+                if (in_array($author_id, $author_post->scopus_author_ids) &&
+                    in_array($affiliation_id, $author_post->affiliation_blacklist)) {
+                    $is_blacklisted = True;
+                    break;
+                }
+            }
+        }
+
+        $value = $apply_blacklist && $is_blacklisted;
+        if ($value) {
+            $this->log->debug(sprintf(
+                'BLACKLISTED "%s" (%s)',
+                $this->current_adapter->get_title(),
+                $this->current_id
+            ));
+        }
+
+        return $value;
+    }
+
+    public function check_publication_too_old($scopus_id) {
+        $publish_datetime = new DateTime($this->meta_cache[$scopus_id]['publish_date']);
+        $limit_datetime = new DateTime($this->args['more_recent_than']);
+        return $limit_datetime > $publish_datetime;
     }
 
     public function exclude_scopus_ids() {
@@ -134,6 +222,11 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
             foreach($author_post->scopus_author_ids as $author_id) {
                 $scopus_ids = $this->fetch_scopus_ids_for_author($author_id);
                 $this->scopus_ids += $scopus_ids;
+                $this->log->info(sprintf(
+                    'Found %s publications for author ID %s',
+                    count($scopus_ids),
+                    $author_id
+                ));
             }
         }
     }
@@ -157,7 +250,7 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
         // query where we specific the author id as the search criteria and we have to derive the publication ids from
         // those search results.
         $scopus_ids = [];
-        $search_string = sprintf('AU_ID(%s)', $author_id);
+        $search_string = sprintf('AU-ID(%s)', $author_id);
         // Even more sadly, this search functionality is paginated, which means that the amount of results to be
         // retrieved with a single request are limited, which is why we need to do this in a loop, where we send more
         // requests until we have all results.
@@ -218,7 +311,7 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
         $query_method->setAccessible(True);
         // Note that this query object does not yet actually perform a network request. The query object itself still
         // has to be invoked the "search" method which then actually sends the request.
-        $query = $query_method->invoke($this->scopus_api, [$search_string]);
+        $query = $query_method->invokeArgs($this->scopus_api, [$search_string]);
         return $query;
     }
 }

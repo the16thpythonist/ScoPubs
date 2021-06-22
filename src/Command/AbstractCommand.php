@@ -184,6 +184,7 @@ abstract class AbstractCommand {
     public function execute(array $args): bool {
         try {
             $processed_args = self::process_args($args);
+            $this->log_args($processed_args);
             $this->run($processed_args);
             $this->log->info("Command " . static::$name . " exits with code 0!");
         } catch (\Error $e) {
@@ -201,6 +202,12 @@ abstract class AbstractCommand {
         // At the end of no error has previously caused the return of "false", we return true to indicate that the
         // command execution was successful
         return true;
+    }
+
+    public function log_args(array $args) {
+        foreach($args as $key => $value) {
+            $this->log->debug($key . ': ' . var_export($value, true));
+        }
     }
 
     /**

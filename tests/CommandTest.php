@@ -28,7 +28,7 @@ class CommandTest extends WP_UnitTestCase{
         $command = new HelloWorldCommand();
         $success = $command->execute(['postfix' => '!11!!']);
         $this->assertTrue($success);
-        $this->assertEquals(3, count($command->log));
+        $this->assertNotEquals(0, count($command->log));
     }
 
     public function test_hello_world_command_fails_with_too_few_parameters() {

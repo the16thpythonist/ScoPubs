@@ -313,7 +313,7 @@ class PublicationPost {
         // Updating the "Observed Author" taxonomy terms
         wp_set_post_terms(
             $this->post_id,
-            array_map(function($a) { return 0; }, $this->observed_authors),
+            array_map(function($a) { return $a->get_full_name(); }, $this->observed_authors),
             self::$publication_observed_author_taxonomy,
             false
         );
@@ -404,6 +404,24 @@ class PublicationPost {
         $postarr['ID'] = $post_id;
 
         return wp_update_post($postarr);
+    }
+
+    /**
+     * Returns a list of ObservedAuthorPost instances, one wrapper instance for every author post in the database.
+     *
+     * @return array
+     */
+    public static function all() {
+        $query = new \WP_Query([
+            'post_type'         => static::$post_type,
+            'post_status'       => 'publish'
+        ]);
+        $wrappers = [];
+        foreach ($query->get_posts() as $post) {
+            $wrapper = new static($post->ID);
+            array_push($wrappers, $wrapper);
+        }
+        return $wrappers;
     }
 
     /**

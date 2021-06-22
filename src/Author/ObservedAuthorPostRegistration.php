@@ -3,6 +3,9 @@
 
 namespace Scopubs\Author;
 
+use WP_Post;
+use Scopubs\Publication\PublicationPost;
+
 /**
  * Class ObservedAuthorPostRegistration
  *
@@ -64,6 +67,11 @@ class ObservedAuthorPostRegistration
         add_filter( 'manage_' . $this->post_type . '_posts_columns', [$this, 'manage_posts_columns'], 10, 1);
         // This action hook then actually echoes the content for these custom admin columns
         add_action( 'manage_' . $this->post_type . '_posts_custom_column', [$this, 'echo_post_column'], 10, 2);
+
+        // https://developer.wordpress.org/reference/hooks/save_post_post-post_type/
+        // Here we hook in custom actions which are supposed to be executed whenever a new post is inserted. Currently
+        // this callback mainly automatically creates an appropriate "observed authors" tax term for publications posts
+        add_action('save_post_' . $this->post_type, [$this, 'save_post'], 10, 3);
     }
 
     public function use_block_editor( $is_enabled, $post_type ) {
@@ -317,6 +325,29 @@ class ObservedAuthorPostRegistration
         }
         else if ( $column === 'topics' ) {
             echo implode(', ', $author_post->author_topics);
+        }
+    }
+
+    // -- custom actions when saving
+
+    // https://developer.wordpress.org/reference/hooks/save_post_post-post_type/
+
+    public function save_post(int $post_id, WP_Post $post, bool $update) {
+        // Now here we need to do some fancy stuff...
+        // https://wordpress.stackexchange.com/questions/163541/inserting-a-term-into-a-custom-taxonomy
+        $first_name = get_post_meta($post_id, 'first_name', true);
+        $last_name = get_post_meta($post_id, 'last_name', true);
+        $full_name = sprintf('%s %s', $first_name, $last_name);
+
+        if (!term_exists($full_name, PublicationPost::$publication_observed_author_taxonomy)) {
+            wp_insert_term(
+                $full_name,
+                PublicationPost::$publication_observed_author_taxonomy,
+                [
+                    'description'   => $post_id,
+                    'slug'          => strtolower($first_name) . '_' . strtolower($last_name)
+                ]
+            );
         }
     }
 }

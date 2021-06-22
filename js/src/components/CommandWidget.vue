@@ -26,10 +26,32 @@
                         class="command-parameter"
                         v-for="([parameterName, parameterData], index) in Object.entries(commands[selectedCommand]['parameters'])">
                     <div class="parameter-header">
-                        <span class="parameter-name">{{ parameterData['name'] }}</span>
+                        <label class="parameter-name" :for="parameterName">{{ parameterData['name'] }}</label>
                         <span class="parameter-type">{{ parameterData['type'] }}</span>
                     </div>
-                    <input type="text" v-model="parameters[parameterName]">
+
+                    <!--
+                    This is where we need to display the actual input widget for the parameter. We need to use a
+                    conditional structure here to display the correct kind of input according of the type of that
+                    parameter. For example for a boolean input type, a checkbox will be the best, for an enum type
+                    a drop down select etc. The default (final else) case will be a text box. This is based on the
+                    assumption that if we are dealing with an unknown type, a plain text entry is probably the best.
+                    -->
+                    <div
+                            class="parameter-input boolean-input"
+                            v-if="parameterData['type'] === 'boolean'">
+                        <input
+                                type="checkbox"
+                                :id="parameterName"
+                                v-model="parameters[parameterName]">
+                        <span style="margin-left: 5px;">{{ parameters[parameterName] }}</span>
+                    </div>
+                    <input
+                            class="parameter-input string-input"
+                            type="text"
+                            :id="parameterName"
+                            v-else
+                            v-model="parameters[parameterName]">
                 </div>
             </div>
             <div class="command-placeholder" v-if="selectedCommand === null">
@@ -169,7 +191,7 @@
 
     $light_gray: #FAFAFA;
     $medium_gray: #A9A9A9;
-    $dark_gray: #555555;
+    $dark_gray: #807C7B;
 
     /* Actual CSS */
 
@@ -215,6 +237,7 @@
     .command-parameter {
         display: flex;
         flex-direction: column;
+        margin-top: 10px;
     }
 
     .parameter-header {
@@ -239,6 +262,16 @@
 
     button.execute {
         font-size: 1.0em;
+    }
+
+    .parameter-input {
+        min-height: 30px;
+    }
+
+    .boolean-input {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
     }
 
 </style>

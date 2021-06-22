@@ -22,9 +22,9 @@ use Scopubs\Log\LogPost;
 
 use Scopubs\Command\CommandManager;
 use Scopubs\Command\HelloWorldCommand;
+use Scopubs\Command\ImportScopusPublicationsCommand;
 
 use Scopubs\VueFrontendRegistration;
-
 use Scopubs\Options;
 
 // == DEFINING CONSTANTS
@@ -38,6 +38,7 @@ CommandManager::register();
 Options::register();
 
 HelloWorldCommand::register();
+ImportScopusPublicationsCommand::register();
 
 $frontend_registration = new VueFrontendRegistration();
 $frontend_registration->register();
