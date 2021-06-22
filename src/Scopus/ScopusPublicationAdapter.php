@@ -10,6 +10,40 @@ use Scopus\Response\AbstractAuthor;
 use Scopus\Response\AbstractCoredata;
 
 
+/**
+ * This class wraps access to the important information contained in the Scopus\Response\Abstracts representation of
+ * scopus publications. These kinds of objects are created by the third party scopus api package which is used for the
+ * network communication with the scopus database.
+ *
+ * **MOTIVATION**
+ *
+ * This package uses a third party package "kasparsj/scopus-search-api" for the actual network communication with the
+ * scopus database. This package wraps the responses to different requests in specific classes. As such the class
+ * "Scopus\Response\Abstracts" represents a single publication retrieved from a search request. This class does
+ * ultimately contain all the information we need, but the access is partly restricted and some information first has
+ * to be computed / synthesised. This is what this class wraps. It exposes a set of simpler methods, which hide the
+ * potentially difficult computations required to extract this information.
+ *
+ * **USAGE**
+ *
+ * The main usage for this class is probably the "to_args" method. This method automatically creates a new insert $args
+ * array, which can be directly passed to the PublicationPost::insert method to create a new publication post.
+ * But before this method can be invoked, a new instance of the adapter class has to be constructed. The constructor
+ * needs to arguments: The "Abstracts" instance which represents the actual publication and a list of all the
+ * ObservedAuthorPost objects which are known to wordpress.
+ *
+ *      // Assuming $publication is known and an instance of Scopus\Response\Abstracts
+ *      $author_posts = ObservedAuthorPost::all();
+ *      $adapter = new ScopusPublicationAdapter($publication, $author_posts);
+ *
+ *      $args = $adapter->to_args();
+ *      PublicationPost::insert($args);
+ *
+ * This greatly simplifies the process of importing a scopus publication record as a local PublicationPost.
+ *
+ * Class ScopusPublicationAdapter
+ * @package Scopubs\Scopus
+ */
 class ScopusPublicationAdapter {
 
     public $publication;
@@ -35,6 +69,19 @@ class ScopusPublicationAdapter {
         $this->observed_authors = $this->get_observed_authors();
     }
 
+    /**
+     * Converts this publication to an insert $args array which can be directly used for the PublicationPost::insert
+     * method to create a new publication post on the wordpress site.
+     *
+     * Additional to the required fields, the resulting array contains more fields however. These fields contain the
+     * values which have to be set as the taxonomy terms of the publication:
+     * - tags: A list of strings, where each string represents one of the tags set for this publication. May be empty
+     * - topics: A list of strings, where each string represents one of the topics set for this publication
+     * - observed authors: A list of ObservedAuthorPost instances, one for each observed author which has contributed
+     *   to this publication.
+     *
+     * @return array
+     */
     public function to_args() {
         $authors = $this->get_authors();
         return [
@@ -52,11 +99,18 @@ class ScopusPublicationAdapter {
             // The following fields are not actually required for the insert itself, but they are information about the
             // publication which for example needs to get processed into taxonomy tags etc.
             'tags'                  => $this->get_tags(),
-            'observed_authors'      => $this->get_observed_authors(),
+            'observed_authors'      => array_values($this->observed_authors),
             'topics'                => $this->get_topics(),
         ];
     }
 
+    /**
+     * Returns a list with the string topics applying to this publication. The topics are a derived property which
+     * originates from the observed authors of this publication. Topics are originally assigned to observed authors.
+     * A publication gets assigned the combination of all topics from each of its observed authors.
+     *
+     * @return array
+     */
     public function get_topics() {
         $topics = [];
         foreach ($this->observed_authors as $author_post) {
@@ -65,6 +119,11 @@ class ScopusPublicationAdapter {
         return array_unique($topics);
     }
 
+    /**
+     * Returns a list of string wordpress post ids(!) for each ObservedAuthorPost belonging to this publication
+     *
+     * @return array
+     */
     public function get_observed_author_post_ids() {
         $post_ids = [];
         foreach($this->observed_authors as $author_post) {
@@ -94,8 +153,13 @@ class ScopusPublicationAdapter {
         return $observed_authors;
     }
 
+    /**
+     * Returns a list of strings, where each string is a tag set for the publication
+     *
+     * @return array
+     */
     public function get_tags() {
-        $data = $this->data_from_publication($this->publication);
+        $data = self::data_from_publication($this->publication);
         if (array_key_exists('idxterms', $data)) {
             $main_term = $data['idxterms']['mainterm'];
             $tags = array_map(function($e) { return $e['$']; }, $main_term);
@@ -105,16 +169,33 @@ class ScopusPublicationAdapter {
         }
     }
 
+    /**
+     * Returns the volume of the journal in which this publication was published.
+     *
+     * @return mixed
+     */
     public function get_volume() {
         return $this->coredata->getVolume();
     }
 
+    /**
+     * Returns the name of the journal in which this publication was published
+     *
+     * @return mixed|null
+     */
     public function get_journal() {
         return $this->coredata->getPublicationName();
     }
 
+    /**
+     * Returns the EID for the publication
+     *
+     * @return string
+     */
     public function get_eid() {
-        $data = $this->data_from_coredata($this->coredata);
+        // Sadly, the EID does not have it's own wrapper method, thus we need to retrieve it from the raw data array
+        // of the REST response for the coredata.
+        $data = self::data_from_coredata($this->coredata);
         if (array_key_exists('eid', $data)) {
             return $data['eid'];
         } else {
@@ -122,14 +203,29 @@ class ScopusPublicationAdapter {
         }
     }
 
+    /**
+     * Returns the DOI for this publication
+     *
+     * @return mixed|null
+     */
     public function get_doi() {
         return $this->coredata->getDoi();
     }
 
+    /**
+     * Returns the string scopus ID for this publication
+     *
+     * @return string
+     */
     public function get_scopus_id() {
         return $this->coredata->getScopusId();
     }
 
+    /**
+     * Returns the string abstract / short description for this publication
+     *
+     * @return mixed
+     */
     public function get_abstract() {
         return $this->coredata->getDescription();
     }
@@ -137,7 +233,7 @@ class ScopusPublicationAdapter {
     /**
      * Returns the full string title of the publication
      *
-     * @return mixed|null
+     * @return string
      */
     public function get_title() {
         return $this->coredata->getTitle();
@@ -179,7 +275,7 @@ class ScopusPublicationAdapter {
             // no wrapper method for retrieving this information. Even more sadly is that the raw data array at the
             // heart of the AbstractAuthor class is proteced and we have to retrieve it with a dirty hack. Which is
             // exactly what "data_from_author" wraps.
-            $_data = $this->data_from_author($author);
+            $_data = self::data_from_author($author);
             // We actually have to check for the existence of these keys here because the affiliation information
             // is not always provided for all authors! This implies that also with our resulting entry the
             // "affiliation_id" field is optional.
@@ -226,19 +322,35 @@ class ScopusPublicationAdapter {
      *
      * @return array The raw "data" array derived from the REST response.
      */
-    public function data_from_author(AbstractAuthor $author) {
+    public static function data_from_author(AbstractAuthor $author) {
         // This is a nifty hack to return a protected member of an object. We define a dynamic method which returns the
         // value and then dynamically bind this function as a public method to the object and then invoke it.
         $closure = function () { return $this->data; };
         return Closure::bind($closure, $author, AbstractAuthor::class)();
     }
 
-    public function data_from_coredata(AbstractCoredata $coredata) {
+    /**
+     * Given the the coredata object of a publication, this method returns the raw data array at the heart of the
+     * coredata representation. Sadly this is a protected field and we have to retrieve it with a dirty hack.
+     *
+     * @param AbstractCoredata $coredata
+     *
+     * @return array The raw "data" array derived from the REST response.
+     */
+    public static function data_from_coredata(AbstractCoredata $coredata) {
         $closure = function () { return $this->data; };
         return Closure::bind($closure, $coredata, AbstractCoredata::class)();
     }
 
-    public function data_from_publication(Abstracts $publication) {
+    /**
+     * Given the publication instance, this method returns the raw data at the heart of the
+     * publication representation. Sadly this is a protected field and we have to retrieve it with a dirty hack.
+     *
+     * @param Abstracts $publication
+     *
+     * @return array The raw "data" array derived from the REST response.
+     */
+    public static function data_from_publication(Abstracts $publication) {
         $closure = function () { return $this->data; };
         return Closure::bind($closure, $publication, Abstracts::class)();
     }

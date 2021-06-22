@@ -331,7 +331,16 @@ class ObservedAuthorPostRegistration
     // -- custom actions when saving
 
     // https://developer.wordpress.org/reference/hooks/save_post_post-post_type/
-
+    /**
+     * The callback for after an observed author post has been saved. Should be hooked into "save_post_{posttype}"
+     * action. What this method does is it automatically creates a new "observed author" PublicationPost taxonomy term
+     * for that saved author. This term is identified by the full name. Therefore a new term is only inserted if the
+     * name has changed with this saving operation.
+     *
+     * @param int $post_id
+     * @param WP_Post $post
+     * @param bool $update
+     */
     public function save_post(int $post_id, WP_Post $post, bool $update) {
         // Now here we need to do some fancy stuff...
         // https://wordpress.stackexchange.com/questions/163541/inserting-a-term-into-a-custom-taxonomy
