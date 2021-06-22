@@ -9,7 +9,11 @@ imported to the wordpress site as a custom post type.
 Features
 ========
 
-to be done
+- Add "Observed Author" records to keep track of different scientists publications
+- Automatically import publications of observed authors from the scopus database as posts of the new "Publication"
+  post type.
+- Automatically assign imported publications with their observed authors "topic" tags.
+- Filter publication import by publication date and author affiliation blacklist
 
 Installation
 ============

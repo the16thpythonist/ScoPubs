@@ -117,6 +117,13 @@ class Util {
         }
     }
 
+    public static function array_limit(array &$array, int $max_length) {
+        if (count($array) > $max_length) {
+            return array_slice($array, 0, $max_length);
+        }
+        return $array;
+    }
+
     // -- Permission callback helpers
 
     /**
@@ -126,11 +133,5 @@ class Util {
      */
     public static function current_user_admin() {
         return current_user_can('administrator');
-    }
-
-    // -- Datetime utilities
-
-    public static function compare_date_strings() {
-
     }
 }

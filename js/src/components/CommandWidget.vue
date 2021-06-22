@@ -47,6 +47,14 @@
                         <span style="margin-left: 5px;">{{ parameters[parameterName] }}</span>
                     </div>
                     <input
+                            class="paramter-input int-input"
+                            type="number"
+                            :id="parameterName"
+                            v-else-if="parameterData['type'] === 'int'"
+                            min="0"
+                            max="10000000000000"
+                            v-model="parameters[parameterName]">
+                    <input
                             class="parameter-input string-input"
                             type="text"
                             :id="parameterName"
@@ -272,6 +280,11 @@
         display: flex;
         flex-direction: row;
         align-items: center;
+        background-color: white;
+        border: 1px solid;
+        border-radius: 5px;
+        border-color: $medium_gray;
+        padding-left: 5px;
     }
 
 </style>

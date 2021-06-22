@@ -90,9 +90,9 @@
                         type: String
                     },
                     {
-                        header: 'Full Name',
-                        get: function(getter, object, key) { return getter(object[key], ["full_name"]); },
-                        set: function(setter, object, key, value) { setter(object[key], "full_name", value); },
+                        header: 'Indexed Name',
+                        get: function(getter, object, key) { return getter(object[key], ["indexed_name"]); },
+                        set: function(setter, object, key, value) { setter(object[key], "indexed_name", value); },
                         locked: false,
                         type: String
                     },

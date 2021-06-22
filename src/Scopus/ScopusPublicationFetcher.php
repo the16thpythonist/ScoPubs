@@ -114,6 +114,8 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
                     ));
                     continue;
                 }
+            } else {
+                continue;
             }
 
             $this->current_adapter = new ScopusPublicationAdapter(
@@ -126,13 +128,19 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
             $this->update_cache();
             $is_valid = $this->check_publication($scopus_id);
             if ($is_valid) {
-                yield $this->current_adapter->to_args();
+                $insert_args = $this->current_adapter->to_args();
+                // $this->log->debug(var_export($insert_args, true));
+                yield $insert_args;
             }
         }
+
+        // Only now the cache modifications will actually be saved to the database.
+        $this->meta_cache->save();
     }
 
     public function update_cache() {
         $cache_args = [
+            'title'                     => $this->current_adapter->get_title(),
             'publish_date'              => $this->current_adapter->get_publish_date(),
             'author_affiliations'       => $this->current_adapter->get_author_affiliations(),
             'observed_author_post_ids'  => $this->current_adapter->get_observed_author_post_ids()
@@ -153,11 +161,11 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
         if ($this->meta_cache->contains($scopus_id)) {
             // Checking for blacklist
             $is_blacklisted = $this->check_publication_blacklisted($scopus_id);
-            if ($is_blacklisted) { return $is_blacklisted; }
+            if ($is_blacklisted) { return False; }
 
             // Checking for age
             $too_old = $this->check_publication_too_old($scopus_id);
-            if ($too_old) { return $too_old; }
+            if ($too_old) { return False; }
         }
 
         return True;
@@ -182,12 +190,12 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
             }
         }
 
-        $value = $apply_blacklist && $is_blacklisted;
+        $value = ($apply_blacklist and $is_blacklisted);
         if ($value) {
             $this->log->debug(sprintf(
                 'BLACKLISTED "%s" (%s)',
-                $this->current_adapter->get_title(),
-                $this->current_id
+                $this->meta_cache[$scopus_id]['title'],
+                $scopus_id
             ));
         }
 
@@ -197,7 +205,17 @@ class ScopusPublicationFetcher extends AbstractPublicationFetcher{
     public function check_publication_too_old($scopus_id) {
         $publish_datetime = new DateTime($this->meta_cache[$scopus_id]['publish_date']);
         $limit_datetime = new DateTime($this->args['more_recent_than']);
-        return $limit_datetime > $publish_datetime;
+        $too_old = $limit_datetime > $publish_datetime;
+
+        if ($too_old) {
+            $this->log->debug(sprintf(
+                'TOO OLD "%s" (%s)',
+                $this->meta_cache[$scopus_id]['title'],
+                $scopus_id
+            ));
+        }
+
+        return $too_old;
     }
 
     public function exclude_scopus_ids() {

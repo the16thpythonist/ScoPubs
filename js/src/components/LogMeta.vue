@@ -18,7 +18,7 @@
                     v-if="enabledLevels[entry['level']]"
                     :class="classesFromEntry(entry)">
                 <span class="index">{{ String(index).padStart(3, '0') }}</span>
-                <span class="log-message">{{ messageFromEntry(entry) }}</span>
+                <span class="log-message" v-html="messageFromEntry(entry)"></span>
             </span>
         </div>
     </div>

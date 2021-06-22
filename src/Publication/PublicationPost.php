@@ -289,6 +289,29 @@ class PublicationPost {
         ];
     }
 
+    // -- wordpress utility
+    // TODO: These could also be part of a generic base class
+
+    /**
+     * Returns the URL for displaying this post
+     *
+     * @return string|\WP_Error
+     */
+    public function get_url() {
+        // https://developer.wordpress.org/reference/functions/get_post_permalink/
+        return get_post_permalink($this->post_id);
+    }
+
+    /**
+     * Returns the URL for the edit page of this post
+     *
+     * @return string|null
+     */
+    public function get_edit_url() {
+        // https://developer.wordpress.org/reference/functions/get_edit_post_link/
+        return get_edit_post_link($this->post_id);
+    }
+
     /**
      * This method saves the current values of this publication post instance to the database record of the
      * corresponding wordpress post.
@@ -435,10 +458,12 @@ class PublicationPost {
      * @return array
      */
     public static function create_postarr(array $args) {
+        // https://developer.wordpress.org/reference/functions/wp_insert_post/
         return [
             'post_type'             => self::$post_type,
             'post_title'            => $args['title'],
             'post_content'          => $args['abstract'],
+            'post_date'             => $args['publish_date'],
             'post_status'           => 'publish',
             'meta_input' => [
                 'publish_date'      => $args['publish_date'],

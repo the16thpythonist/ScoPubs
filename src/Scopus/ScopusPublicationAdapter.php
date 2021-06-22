@@ -175,7 +175,8 @@ class ScopusPublicationAdapter {
      * @return mixed
      */
     public function get_volume() {
-        return $this->coredata->getVolume();
+        $volume = $this->coredata->getVolume();
+        return ($volume !== null ? strval($volume) : '');
     }
 
     /**
@@ -209,7 +210,8 @@ class ScopusPublicationAdapter {
      * @return mixed|null
      */
     public function get_doi() {
-        return $this->coredata->getDoi();
+        $doi = $this->coredata->getDoi();
+        return ($doi !== null ? strval($doi) : '');
     }
 
     /**
@@ -227,7 +229,8 @@ class ScopusPublicationAdapter {
      * @return mixed
      */
     public function get_abstract() {
-        return $this->coredata->getDescription();
+        $abstract = $this->coredata->getDescription();
+        return ($abstract !== null ? strval($abstract) : '');
     }
 
     /**
